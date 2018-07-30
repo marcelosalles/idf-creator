@@ -102,8 +102,7 @@ for i in range(len(TYPES)):
         SAMPLE['type'].append(type)
       
 # SAMPLE as a pandas' Data Frame
-for name in SAMPLE:
-    print(name)
+
 output = pd.DataFrame(SAMPLE)
 
 # Save pandas' Data Frame to a .csv file
