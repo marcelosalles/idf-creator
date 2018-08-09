@@ -1,4 +1,4 @@
-!-Generator IDFEditor 1.48
+!-Generator IDFEditor 1.50
 !-Option SortedOrder
 
 !-NOTE: All comments with '!-' are ignored by the IDFEditor and are generated automatically.
@@ -22,7 +22,7 @@
 ! HVAC: None.
 !
 Version,
-    8.6;                     !- Version Identifier
+    8.9;                     !- Version Identifier
 
 
 !-   ===========  ALL OBJECTS IN CLASS: SIMULATIONCONTROL ===========
@@ -121,14 +121,14 @@ Schedule:Compact,
     Through: 12/31,          !- Field 1
     For: Weekdays,           !- Field 2
     Until: 08:00,            !- Field 3
-     0,                      !- Field 4
+    0,                       !- Field 4
     Until: 18:00,            !- Field 5
     1,                       !- Field 6
     Until: 24:00,            !- Field 7
-     0,                      !- Field 8
+    0,                       !- Field 8
     For: allotherdays,       !- Field 9
     Until: 24:00,            !- Field 10
-     0;                      !- Field 11
+    0;                       !- Field 11
 
 Schedule:Compact,
     Sch_Equip_Computador,    !- Name
@@ -404,7 +404,7 @@ GlobalGeometryRules,
 
 People,
     ocupacao1,               !- Name
-    Tudo,                    !- Zone or ZoneList Name
+    All,                     !- Zone or ZoneList Name
     Sch_Ocupacao,            !- Number of People Schedule Name
     People/Area,             !- Number of People Calculation Method
     ,                        !- Number of People
@@ -422,7 +422,7 @@ People,
 
 Lights,
     iluminacao1,             !- Name
-    Tudo,                    !- Zone or ZoneList Name
+    All,                     !- Zone or ZoneList Name
     Sch_Iluminacao,          !- Schedule Name
     Watts/Area,              !- Design Level Calculation Method
     ,                        !- Lighting Level {W}
@@ -440,7 +440,7 @@ Lights,
 
 ElectricEquipment,
     equipamentossala,        !- Name
-    Salas,                   !- Zone or ZoneList Name
+    Offices,                 !- Zone or ZoneList Name
     Sch_Equip_Computador,    !- Schedule Name
     Watts/Area,              !- Design Level Calculation Method
     ,                        !- Design Level {W}
@@ -453,7 +453,7 @@ ElectricEquipment,
 
 ElectricEquipment,
     equipamentoscorredor,    !- Name
-    Corredores,              !- Zone or ZoneList Name
+    Corridors,               !- Zone or ZoneList Name
     Sch_Equip_Computador,    !- Schedule Name
     Watts/Area,              !- Design Level Calculation Method
     ,                        !- Design Level {W}
@@ -471,7 +471,6 @@ AirflowNetwork:SimulationControl,
     Ventilacao,              !- Name
     MultizoneWithoutDistribution,  !- AirflowNetwork Control
     SurfaceAverageCalculation,  !- Wind Pressure Coefficient Type
-    ,                        !- AirflowNetwork Wind Pressure Coefficient Array Name
     OpeningHeight,           !- Height Selection for Local Wind Pressure Calculation
     LowRise,                 !- Building Type
     500,                     !- Maximum Number of Iterations {dimensionless}
@@ -545,12 +544,12 @@ OutputControl:Table:Style,
 
 Output:Variable,
     *,                       !- Key Value
-    Site Outdoor Air Drybulb Temperature ,  !- Variable Name
+    Site Outdoor Air Drybulb Temperature,  !- Variable Name
     Hourly;                  !- Reporting Frequency
 
 Output:Variable,
     *,                       !- Key Value
-    Zone Operative Temperature ,  !- Variable Name
+    Zone Operative Temperature,  !- Variable Name
     Hourly;                  !- Reporting Frequency
 
 Output:Variable,

@@ -9,7 +9,7 @@ from pyidf.idf import IDF
 
 def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, shading = 1, azimuth = 0,
     corr_width = 2, wall_u = 2.5, corr_vent = True, stairs = True, zone_feat = .5,#zone_dict,
-    zones_x_floor = 6, n_floors = 1, input = "modelo.idf",output = 'output.idf'):
+    zones_x_floor = 6, n_floors = 2, input = "modelo.idf",output = 'output.idf'):
     
     print(output)
 
@@ -122,10 +122,10 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
         # Surface name
         BldgSurface['Name'].append('floor_zn_'+str(i))
         BldgSurface['Name'].append('ceiling_zn_'+str(i))
-        BldgSurface['Name'].append('wall-0_zn_'+str(i))
-        BldgSurface['Name'].append('wall-1_zn_'+str(i))
-        BldgSurface['Name'].append('wall-2_zn_'+str(i))
-        BldgSurface['Name'].append('wall-3_zn_'+str(i))
+        BldgSurface['Name'].append('wall-0_zn_'+str(i)) # wall N
+        BldgSurface['Name'].append('wall-1_zn_'+str(i)) # wall L
+        BldgSurface['Name'].append('wall-2_zn_'+str(i)) # wall S
+        BldgSurface['Name'].append('wall-3_zn_'+str(i)) # wall O
         
         # Surface type
         BldgSurface['SurfaceType'].append('Floor')
@@ -218,11 +218,11 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
             if BldgSurface['Name'][i][0:4] == 'ceil':
                 BldgSurface['OutsideBoundryCondObj'].append('floor_zn_'+str((i//6)+zones_x_floor))
             if BldgSurface['Name'][i][0:6] == 'wall-0':
-                BldgSurface['OutsideBoundryCondObj'].append('wall-S_zn_'+str((i//6)+2))
+                BldgSurface['OutsideBoundryCondObj'].append('wall-2_zn_'+str((i//6)+2))
             if BldgSurface['Name'][i][0:6] == 'wall-2':
-                BldgSurface['OutsideBoundryCondObj'].append('wall-N_zn_'+str((i//6)-2))
+                BldgSurface['OutsideBoundryCondObj'].append('wall-0_zn_'+str((i//6)-2))
             if BldgSurface['Name'][i][0:6] == 'wall-1' or BldgSurface['Name'][i][0:6] == 'wall-3':
-                BldgSurface['OutsideBoundryCondObj'].append('wall-corr_zn'+str(i//6))
+                BldgSurface['OutsideBoundryCondObj'].append('wall-corr_zn_'+str(i//6))
         else:
             BldgSurface['OutsideBoundryCondObj'].append(' ')
 
@@ -936,8 +936,3 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
     out = [idf, output]
 
     return(out)
-
-out = main(zones_x_floor = 20, n_floors = 4)
-idf = out[0]
-outputname = out[1]
-idf.save(outputname)

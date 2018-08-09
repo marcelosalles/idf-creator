@@ -1,0 +1,4 @@
+*.idf
+*.html
+*.pyc
+__py_cache__/
