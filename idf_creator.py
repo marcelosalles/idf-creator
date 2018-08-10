@@ -25,7 +25,10 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
     azimuth = int(azimuth)
     corr_width = float(corr_width)
     wall_u = float(wall_u)
-    wwr = float(zone_feat) # MUDAR DEPOIS!!!
+    wwr = zone_feat['wwr']
+    thermal_comfort = zone_feat['thermal_comfort']
+    open_fac = zone_feat['open_fac']
+    glass = zone_feat['glass']
 
     zones_x_floor = int(zones_x_floor)
     n_floors = int(n_floors)
