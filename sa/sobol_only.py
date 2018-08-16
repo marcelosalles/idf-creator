@@ -19,7 +19,7 @@ ROOM_COL_NAMES = ['wwr','open_fac','thermal_loads','glass']
 
 BOUNDS = [-1,1]
 
-SIMULATIONS = 30800
+SIMULATIONS = 9900#30800
 
 
 def n_calc(D, type, simulations):
@@ -31,7 +31,7 @@ def n_calc(D, type, simulations):
 
     elif type == 'room':
 
-        cases = simulations*(1+2+3+4+5)*(1/5)*6
+        cases = simulations*(1+2+3+4)*(.25)*6
 
     N = cases/(D + 2)
 

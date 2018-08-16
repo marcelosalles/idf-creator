@@ -301,6 +301,12 @@ Material,
     0.4;                     !- Visible Absorptance
 
 
+!-   ===========  ALL OBJECTS IN CLASS: MATERIAL:INFRAREDTRANSPARENT ===========
+
+Material:InfraredTransparent,
+    IR;                      !- Name
+
+
 !-   ===========  ALL OBJECTS IN CLASS: MATERIAL:AIRGAP ===========
 
 Material:AirGap,
@@ -386,8 +392,8 @@ Construction,
     PortaMadeira(30mm);      !- Outside Layer
 
 Construction,
-    Exterior Door,           !- Name
-    PortaMadeira(30mm);      !- Outside Layer
+    InfraRed,                !- Name
+    IR;                      !- Outside Layer
 
 
 !-   ===========  ALL OBJECTS IN CLASS: GLOBALGEOMETRYRULES ===========

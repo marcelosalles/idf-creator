@@ -6,9 +6,11 @@ import logging
 logging.info("start")
 from pyidf.idf import IDF
 
+import pandas as pd
+
 
 def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, shading = 1, azimuth = 0,
-    corr_width = 2, wall_u = 2.5, corr_vent = True, stairs = True, zone_feat = .5,#zone_dict,
+    corr_width = 2, wall_u = 2.5, corr_vent = 1, stairs = 1, zone_feat = None,
     zones_x_floor = 6, n_floors = 2, input = "modelo.idf",output = 'output.idf'):
     
     print(output)
@@ -25,25 +27,31 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
     azimuth = int(azimuth)
     corr_width = float(corr_width)
     wall_u = float(wall_u)
-    wwr = zone_feat['wwr']
-    thermal_comfort = zone_feat['thermal_comfort']
-    open_fac = zone_feat['open_fac']
-    glass = zone_feat['glass']
-
     zones_x_floor = int(zones_x_floor)
     n_floors = int(n_floors)
 
+    # editing subdf thermal load
+
+    zone_feat['electric'] = zone_feat['thermal_loads']*.1124
+    zone_feat['people'] = (zone_feat['thermal_loads']*.7076)*math.pow(90, -1)
+    zone_feat['lights'] =zone_feat['thermal_loads']*.18
+
+    # Defining U
+
+    R_mat = (1-.17*wall_u)*math.pow(wall_u, -1)
+    c_plaster = .025*math.pow((.085227272727273 * R_mat), -1)
+    c_brick = .066*math.pow((.2875 * R_mat), -1)
+    R_air = (.62727273 * R_mat)
+
     # Defining dependent variabloes ----------
 
-    zone_length = math.sqrt(zone_area / zone_ratio)
-    zone_width = (zone_area / zone_length)
+    zone_length = math.sqrt(zone_area *math.pow(zone_ratio,-1))
+    zone_width = (zone_area *math.pow(zone_length,-1))
     n_zones = zones_x_floor * n_floors
-    zones_in_sequence = int(zones_x_floor/2)
+    zones_in_sequence = int(zones_x_floor*.5)
 
     x0_second_row = (zone_width) + (corr_width) 
 
-    window_z1 = zone_height*(1-wwr)/2
-    window_z2 = window_z1+(zone_height*wwr)
     window_x1 = zone_width*.001
     window_x2 = zone_width*.999
     window_y1 = zone_length*.001
@@ -53,15 +61,26 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
     dist_door_wall = .5
     door_height = 2.1
 
+    # thermal loads lists
+
+    electric = []
+    lights = []
+    people = []
+
+    for i in range(n_zones):
+        electric.append(zone_feat['electric'][i])
+        lights.append(zone_feat['lights'][i])
+        people.append(zone_feat['people'][i])
+
     # Zones --------------------
 
     zones_list = []
 
     for i in range(n_zones):
-        zones_list.append( 'Zone_' + str(i) )
+        zones_list.append( 'zone_' + str(i) )
 
     for i in range(n_floors):
-        zones_list.append( 'Corridor_floor_' + str(i) )
+        zones_list.append( 'corridor_' + str(i) )
 
     # x,y,z of zones' origins
 
@@ -355,12 +374,21 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
             BldgSurface['OutsideBoundryCondObj'].append('floor_corr_'+str(i+1))
 
         for j in range(2):
-            BldgSurface['SurfaceType'].append('Wall')        
-            BldgSurface['ConstructionName'].append('Exterior Wall')
-            BldgSurface['OutsideBoundryCond'].append('Outdoors')
-            BldgSurface['SunExposure'].append('SunExposed')
-            BldgSurface['WindExposure'].append('WindExposed')
-            BldgSurface['OutsideBoundryCondObj'].append(' ')
+
+            if corr_vent > 0:
+                BldgSurface['SurfaceType'].append('Wall')        
+                BldgSurface['ConstructionName'].append('Exterior Wall')
+                BldgSurface['OutsideBoundryCond'].append('Outdoors')
+                BldgSurface['SunExposure'].append('SunExposed')
+                BldgSurface['WindExposure'].append('WindExposed')
+                BldgSurface['OutsideBoundryCondObj'].append(' ')
+            else:
+                BldgSurface['SurfaceType'].append('Wall')        
+                BldgSurface['ConstructionName'].append('Exterior Wall')
+                BldgSurface['OutsideBoundryCond'].append('Adiabatic')
+                BldgSurface['SunExposure'].append('NoSun')
+                BldgSurface['WindExposure'].append('NoWind')
+                BldgSurface['OutsideBoundryCondObj'].append(' ')
             
         for j in range(zones_x_floor):
             BldgSurface['SurfaceType'].append('Wall')        
@@ -482,6 +510,10 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
     windows_list = []
         
     for i in range(n_zones):
+
+        wwr = float(zone_feat['wwr'][i])
+        window_z1 = zone_height*(1-wwr)*.5
+        window_z2 = window_z1+(zone_height*wwr)
         
         if i%zones_x_floor == zones_x_floor-2: # upper left corner
 
@@ -501,8 +533,8 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
             FenSurface['SurfaceType'].append('Window')
             FenSurface['SurfaceType'].append('Door')
             
-            FenSurface['ConstructionName'].append('Exterior Window')
-            FenSurface['ConstructionName'].append('Exterior Window')
+            FenSurface['ConstructionName'].append('glass_construction_zone_'+str(i))
+            FenSurface['ConstructionName'].append('glass_construction_zone_'+str(i))
             FenSurface['ConstructionName'].append('Interior Door')
             
             FenSurface['OutsideBoundryCondObj'].append(' ')
@@ -572,8 +604,8 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
             FenSurface['SurfaceType'].append('Window')
             FenSurface['SurfaceType'].append('Door')
             
-            FenSurface['ConstructionName'].append('Exterior Window')
-            FenSurface['ConstructionName'].append('Exterior Window')
+            FenSurface['ConstructionName'].append('glass_construction_zone_'+str(i))
+            FenSurface['ConstructionName'].append('glass_construction_zone_'+str(i))
             FenSurface['ConstructionName'].append('Interior Door')
             
             FenSurface['OutsideBoundryCondObj'].append(' ')
@@ -639,7 +671,7 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
             FenSurface['SurfaceType'].append('Window')
             FenSurface['SurfaceType'].append('Door')
             
-            FenSurface['ConstructionName'].append('Exterior Window')
+            FenSurface['ConstructionName'].append('glass_construction_zone_'+str(i))
             FenSurface['ConstructionName'].append('Interior Door')
             
             FenSurface['OutsideBoundryCondObj'].append(' ')
@@ -691,7 +723,7 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
             FenSurface['SurfaceType'].append('Window')
             FenSurface['SurfaceType'].append('Door')
             
-            FenSurface['ConstructionName'].append('Exterior Window')
+            FenSurface['ConstructionName'].append('glass_construction_zone_'+str(i))
             FenSurface['ConstructionName'].append('Interior Door')
             
             FenSurface['OutsideBoundryCondObj'].append(' ')
@@ -741,7 +773,7 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
             FenSurface['SurfaceType'].append('Window')
             FenSurface['SurfaceType'].append('Door')
             
-            FenSurface['ConstructionName'].append('Exterior Window')
+            FenSurface['ConstructionName'].append('glass_construction_zone_'+str(i))
             FenSurface['ConstructionName'].append('Interior Door')
             
             FenSurface['OutsideBoundryCondObj'].append(' ')
@@ -826,7 +858,199 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
             FenSurface['V4y'].append(zone_length*(j+1)-dist_door_wall)
             FenSurface['V4z'].append(door_height)
 
+        # corridor ventilation 
 
+        if corr_vent > 0:
+
+            opening_i = 'window-0_corr_'+str(i)
+            FenSurface['Name'].append(opening_i)
+            windows_list.append(opening_i)
+            
+            opening_i = 'window-2_corr_'+str(i)
+            doors_list.append(opening_i)
+            FenSurface['Name'].append(opening_i)
+                
+            FenSurface['SurfaceType'].append('Window')
+            FenSurface['SurfaceType'].append('Window')
+            
+            FenSurface['ConstructionName'].append('Exterior Window')
+            FenSurface['ConstructionName'].append('Exterior Window')
+            
+            FenSurface['OutsideBoundryCondObj'].append(' ')
+            FenSurface['OutsideBoundryCondObj'].append(' ')
+                
+            FenSurface['BuildingSurfaceName'].append('wall-0_corr_'+str(i))
+            FenSurface['BuildingSurfaceName'].append('wall-2_corr_'+str(i))
+     
+            #'window-0
+            FenSurface['V1x'].append(corr_width*.75)
+            FenSurface['V1y'].append(zone_length*zones_in_sequence)
+            FenSurface['V1z'].append(door_height)
+            FenSurface['V2x'].append(corr_width*.75)
+            FenSurface['V2y'].append(zone_length*zones_in_sequence)
+            FenSurface['V2z'].append(door_height-1)
+            FenSurface['V3x'].append(corr_width*.25)
+            FenSurface['V3y'].append(zone_length*zones_in_sequence)
+            FenSurface['V3z'].append(door_height-1)
+            FenSurface['V4x'].append(corr_width*.25)
+            FenSurface['V4y'].append(zone_length*zones_in_sequence)
+            FenSurface['V4z'].append(door_height) 
+            
+            #'window-2
+            FenSurface['V1x'].append(corr_width*.25)
+            FenSurface['V1y'].append(0)
+            FenSurface['V1z'].append(door_height)
+            FenSurface['V2x'].append(corr_width*.25)
+            FenSurface['V2y'].append(0)
+            FenSurface['V2z'].append(door_height-1)
+            FenSurface['V3x'].append(corr_width*.75)
+            FenSurface['V3y'].append(0)
+            FenSurface['V3z'].append(door_height-1)
+            FenSurface['V4x'].append(corr_width*.75)
+            FenSurface['V4y'].append(0)
+            FenSurface['V4z'].append(door_height) 
+
+        # Stairs
+
+        if stairs > 0:
+
+            if i > 0: # not ground floor
+
+                FenSurface['Name'].append('stair-inf_'+str(i))
+                FenSurface['SurfaceType'].append('Door')
+                FenSurface['ConstructionName'].append('InfraRed')
+                FenSurface['BuildingSurfaceName'].append('floor_corr_'+str(i))
+                FenSurface['OutsideBoundryCondObj'].append('stair-sup_'+str(i-1))
+                # stair has width = 0.98*corr_width [m] and length = 4.5 [m]
+                FenSurface['V1x'].append(0.99*corr_width)
+                FenSurface['V1y'].append(0.01)
+                FenSurface['V1z'].append(0)
+                FenSurface['V2x'].append(0.01*corr_width)
+                FenSurface['V2y'].append(0.01)
+                FenSurface['V2z'].append(0)
+                FenSurface['V3x'].append(0.01*corr_width)
+                FenSurface['V3y'].append(4.51)
+                FenSurface['V3z'].append(0)
+                FenSurface['V4x'].append(0.99*corr_width)
+                FenSurface['V4y'].append(4.51)
+                FenSurface['V4z'].append(0)
+
+            if i < len(corridors)-1: # not roof floor
+                FenSurface['Name'].append('stair-sup_'+str(i))
+                FenSurface['SurfaceType'].append('Door')
+                FenSurface['ConstructionName'].append('InfraRed')                    
+                FenSurface['BuildingSurfaceName'].append('ceil_corr_'+str(i))
+                FenSurface['OutsideBoundryCondObj'].append('stair-inf_'+str(i+1))
+                # stair has width = 0.98*corr_width [m] and length = 4.5 [m]
+                FenSurface['V1x'].append(0.01*corr_width)
+                FenSurface['V1y'].append(0.01)
+                FenSurface['V1z'].append(zone_height)
+                FenSurface['V2x'].append(0.99*corr_width)
+                FenSurface['V2y'].append(0.01)
+                FenSurface['V2z'].append(zone_height)
+                FenSurface['V3x'].append(0.99*corr_width)
+                FenSurface['V3y'].append(4.51)
+                FenSurface['V3z'].append(zone_height)
+                FenSurface['V4x'].append(0.01*corr_width)
+                FenSurface['V4y'].append(4.51)
+                FenSurface['V4z'].append(zone_height)
+
+    # Shading ----------------------------------------------------
+ 
+    if shading > 0:
+ 
+        # Shading:Building:Detailed
+ 
+        ShadingBuildingDetailed = {
+        'Name': [],
+        'Transmittance Schedule Name': [],
+        'Number of Vertices': [],
+        'V1x': [],
+        'V1y': [],
+        'V1z': [],
+        'V2x': [],
+        'V2y': [],
+        'V2z': [],
+        'V3x': [],
+        'V3y': [],
+        'V3z': [],
+        'V4x': [],
+        'V4y': [],
+        'V4z': []
+        }
+ 
+        for i in range(len(corridors)):
+
+             # Shading Face 0            
+            ShadingBuildingDetailed['Name'].append('shading-0_'+str(i))
+            ShadingBuildingDetailed['Transmittance Schedule Name'].append('')
+            ShadingBuildingDetailed['Number of Vertices'].append(4)
+            ShadingBuildingDetailed['V1x'].append(0) 
+            ShadingBuildingDetailed['V1y'].append(zone_length*zones_in_sequence+shading)
+            ShadingBuildingDetailed['V1z'].append((i+1)*zone_height)                            
+            ShadingBuildingDetailed['V2x'].append(0)
+            ShadingBuildingDetailed['V2y'].append(zone_length*zones_in_sequence)        
+            ShadingBuildingDetailed['V2z'].append((i+1)*zone_height)
+            ShadingBuildingDetailed['V3x'].append(2*zone_width+corr_width)                    
+            ShadingBuildingDetailed['V3y'].append(zone_length*zones_in_sequence)
+            ShadingBuildingDetailed['V3z'].append((i+1)*zone_height)
+            ShadingBuildingDetailed['V4x'].append(2*zone_width+corr_width)
+            ShadingBuildingDetailed['V4y'].append(zone_length*zones_in_sequence+shading)
+            ShadingBuildingDetailed['V4z'].append((i+1)*zone_height)
+     
+            # Shading Face 1            
+            ShadingBuildingDetailed['Name'].append('shading-1_'+str(i))
+            ShadingBuildingDetailed['Transmittance Schedule Name'].append('')
+            ShadingBuildingDetailed['Number of Vertices'].append(4)
+            ShadingBuildingDetailed['V1x'].append(2*zone_width+corr_width+shading) 
+            ShadingBuildingDetailed['V1y'].append(zone_length*zones_in_sequence)
+            ShadingBuildingDetailed['V1z'].append((i+1)*zone_height)                            
+            ShadingBuildingDetailed['V2x'].append(2*zone_width+corr_width)
+            ShadingBuildingDetailed['V2y'].append(zone_length*zones_in_sequence)        
+            ShadingBuildingDetailed['V2z'].append((i+1)*zone_height)
+            ShadingBuildingDetailed['V3x'].append(2*zone_width+corr_width)                    
+            ShadingBuildingDetailed['V3y'].append(0)
+            ShadingBuildingDetailed['V3z'].append((i+1)*zone_height)
+            ShadingBuildingDetailed['V4x'].append(2*zone_width+corr_width+shading)
+            ShadingBuildingDetailed['V4y'].append(0)
+            ShadingBuildingDetailed['V4z'].append((i+1)*zone_height)
+     
+            # Shading Face 2
+            
+            ShadingBuildingDetailed['Name'].append('shading-2_'+str(i))
+            ShadingBuildingDetailed['Transmittance Schedule Name'].append('')
+            ShadingBuildingDetailed['Number of Vertices'].append(4)
+            ShadingBuildingDetailed['V1x'].append(2*zone_width+corr_width) 
+            ShadingBuildingDetailed['V1y'].append(-shading)
+            ShadingBuildingDetailed['V1z'].append((i+1)*zone_height)                            
+            ShadingBuildingDetailed['V2x'].append(2*zone_width+corr_width)
+            ShadingBuildingDetailed['V2y'].append(0)        
+            ShadingBuildingDetailed['V2z'].append((i+1)*zone_height)
+            ShadingBuildingDetailed['V3x'].append(0)                    
+            ShadingBuildingDetailed['V3y'].append(0)
+            ShadingBuildingDetailed['V3z'].append((i+1)*zone_height)
+            ShadingBuildingDetailed['V4x'].append(0)
+            ShadingBuildingDetailed['V4y'].append(-shading)
+            ShadingBuildingDetailed['V4z'].append((i+1)*zone_height)
+     
+            # Shading Face 3
+            
+            ShadingBuildingDetailed['Name'].append('shading-3_'+str(i))
+            ShadingBuildingDetailed['Transmittance Schedule Name'].append('')
+            ShadingBuildingDetailed['Number of Vertices'].append(4)
+            ShadingBuildingDetailed['V1x'].append(-shading) 
+            ShadingBuildingDetailed['V1y'].append(0)
+            ShadingBuildingDetailed['V1z'].append((i+1)*zone_height)                            
+            ShadingBuildingDetailed['V2x'].append(0)
+            ShadingBuildingDetailed['V2y'].append(0)        
+            ShadingBuildingDetailed['V2z'].append((i+1)*zone_height)
+            ShadingBuildingDetailed['V3x'].append(0)                    
+            ShadingBuildingDetailed['V3y'].append(zone_length*zones_in_sequence)
+            ShadingBuildingDetailed['V3z'].append((i+1)*zone_height)
+            ShadingBuildingDetailed['V4x'].append(-shading)
+            ShadingBuildingDetailed['V4y'].append(zone_length*zones_in_sequence)
+            ShadingBuildingDetailed['V4z'].append((i+1)*zone_height)
+        
     # Dictionaries to IDF --------------------
 
     for i in range(len(BldgSurface['Name'])):
@@ -886,6 +1110,60 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
         obj['Z Origin'] = zones_z[i] 
         idf.add(obj)
 
+    for i in range(len(offices)):
+        obj = IDF._create_datadict('ElectricEquipment')
+        obj[0] = 'equip_'+zones_list[i]
+        obj[1] = zones_list[i]
+        obj[2] = 'Sch_Equip_Computador'
+        obj[3] = 'Watts/Area'
+        obj[4] = ''
+        obj[5] = electric[i]
+        obj[6] = ''
+        obj[7] = 0
+        obj[8] = .5
+        obj[9] = 0
+        obj[10] = 'General'
+        idf.add(obj)
+
+        obj = IDF._create_datadict('People')
+        obj[0] = 'people_'+zones_list[i]
+        obj[1] = zones_list[i]
+        obj[2] = 'Sch_Ocupacao'
+        obj[3] = 'People/Area'
+        obj[4] = ''
+        obj[5] = people[i]
+        obj[6] = ''
+        obj[7] = .3
+        obj[8] = 'autocalculate'
+        obj[9] = 'Sch_Atividade'
+        #obj[10] = 'General'
+        idf.add(obj)
+
+        obj = IDF._create_datadict('Lights')
+        obj[0] = 'lights_'+zones_list[i]
+        obj[1] = zones_list[i]
+        obj[2] = 'Sch_Iluminacao'
+        obj[3] = 'Watts/Area'
+        obj[4] = ''
+        obj[5] = lights[i]
+        obj[6] = ''
+        obj[7] = 0
+        obj[8] = .72
+        obj[9] = .18
+        obj[10] = 1
+        idf.add(obj)
+
+        glass_material = 'glass_material_'+zones_list[i]
+        obj = IDF._create_datadict('WindowMaterial:SimpleGlazingSystem')
+        obj[0] = glass_material
+        obj[1] = 5.7
+        obj[2] = zone_feat['glass'][i]
+        idf.add(obj)
+
+        obj = IDF._create_datadict('Construction')
+        obj[0] = 'glass_construction_'+zones_list[i]
+        obj[1] = glass_material
+        idf.add(obj)
 
     obj = IDF._create_datadict('ZoneList')
     obj['Name'] = 'Offices'
@@ -912,11 +1190,20 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
         obj[7] = 300000
         idf.add(obj)
 
+    open_fac_i = 0
     for i in range(len(windows_list)):
         obj = IDF._create_datadict('AirflowNetwork:MultiZone:Surface')
         obj[0] = windows_list[i]
         obj[1] = 'Janela'
-        obj[3] = .5
+
+        if windows_list[i][9:13]  == 'corr':
+            open_fac = .5
+        else:
+            open_fac = zone_feat['open_fac'][open_fac_i]
+
+            if i > 0 and windows_list[i][-4:] != windows_list[i-1][-4:]:
+                open_fac_i += 1
+        obj[3] = open_fac
         obj[4] = 'Temperature'
         obj[5] = 'Temp_setpoint'
         obj[8] = 100
@@ -929,13 +1216,109 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
         obj[0] = doors_list[i]
         obj[1] = 'Porta'
         obj[3] = 1
-        obj[4] = 'Temperature'
-        obj[5] = 'Temp_setpoint'
+        obj[4] = 'NoVent'
+        obj[5] = ' '
         obj[8] = 100
         obj[10] = 300000
         obj[11] = 'Sch_Ocupacao'
         idf.add(obj)
+    
+    if stairs > 0:
+        for i in range(len(corridors)-1):
+            obj = IDF._create_datadict('AirflowNetwork:MultiZone:Surface')
+            obj[0] = 'stair-sup_'+str(i)
+            obj[1] = 'HorizontalOpening'
+            obj[3] = 1
+            obj[4] = 'Constant'
+            obj[5] = 'Temp_setpoint'
+            obj[8] = 100
+            obj[10] = 300000
+            obj[11] = 'Always On'
+            idf.add(obj)
+
+        obj = IDF._create_datadict('AirflowNetwork:MultiZone:Component:HorizontalOpening')
+        obj[0] = 'HorizontalOpening'
+        obj[1] = 0.001
+        obj[2] = .65
+        obj[3] = 25
+        obj[4] = 0.6
+        idf.add(obj)
+
+    if shading > 0:
+        for i in range(len(ShadingBuildingDetailed['Name'])):
+            obj = IDF._create_datadict('Shading:Building:Detailed')
+            obj['Name'] = ShadingBuildingDetailed['Name'][i]
+            obj['Transmittance Schedule Name'] = ShadingBuildingDetailed['Transmittance Schedule Name'][i]
+            obj['Number of Vertices'] = 4
+            obj[u'Vertex 1 X-coordinate', 0] = ShadingBuildingDetailed['V1x'][i]
+            obj[u'Vertex 1 Y-coordinate', 0] = ShadingBuildingDetailed['V1y'][i]
+            obj[u'Vertex 1 Z-coordinate', 0] = ShadingBuildingDetailed['V1z'][i]
+            obj[u'Vertex 1 X-coordinate', 1] = ShadingBuildingDetailed['V2x'][i]
+            obj[u'Vertex 1 Y-coordinate', 1] = ShadingBuildingDetailed['V2y'][i]
+            obj[u'Vertex 1 Z-coordinate', 1] = ShadingBuildingDetailed['V2z'][i]
+            obj[u'Vertex 1 X-coordinate', 2] = ShadingBuildingDetailed['V3x'][i]
+            obj[u'Vertex 1 Y-coordinate', 2] = ShadingBuildingDetailed['V3y'][i]
+            obj[u'Vertex 1 Z-coordinate', 2] = ShadingBuildingDetailed['V3z'][i]
+            obj[u'Vertex 1 X-coordinate', 3] = ShadingBuildingDetailed['V4x'][i]
+            obj[u'Vertex 1 Y-coordinate', 3] = ShadingBuildingDetailed['V4y'][i]
+            obj[u'Vertex 1 Z-coordinate', 3] = ShadingBuildingDetailed['V4z'][i]
+            idf.add(obj)
+
+    obj = IDF._create_datadict('Material')
+    obj[0] = 'ArgamassaReboco(25mm)'
+    obj[1] = 'Rough'
+    obj[2] = .025
+    obj[3] = c_plaster
+    obj[4] = 2000
+    obj[5] = 1000
+    obj[6] = .9
+    obj[7] = absorptance
+    obj[8] = absorptance
+    idf.add(obj)
+
+    obj = IDF._create_datadict('Material')
+    obj[0] = 'TelhaCeramica'
+    obj[1] = 'Rough'
+    obj[2] = .01
+    obj[3] = 1.05
+    obj[4] = 2000
+    obj[5] = 920
+    obj[6] = .9
+    obj[7] = absorptance
+    obj[8] = absorptance
+    idf.add(obj)
+
+    obj = IDF._create_datadict('Material')
+    obj[0] = 'Ceram Tij 8 fur circ (10 cm)'
+    obj[1] = 'Rough'
+    obj[2] = .033
+    obj[3] = c_brick
+    obj[4] = 1103
+    obj[5] = 920
+    obj[6] = .9
+    idf.add(obj)
+
+    obj = IDF._create_datadict('Material:AirGap')
+    obj[0] = 'CavidadeBloco:CamaradeAr(20-50mm)'
+    obj[1] = R_air
+    idf.add(obj)
+
+    obj = IDF._create_datadict('Building')
+    obj[0] = output[:-4]
+    obj[1] = azimuth
+    obj[2] = 'City'
+    obj[3] = .04
+    obj[4] = .4
+    obj[5] = 'FullInteriorAndExterior'
+    obj[6] = 25
+    idf.add(obj)
 
     out = [idf, output]
 
     return(out)
+
+# out = main(n_floors = 3, output = 'output-teste.idf')
+
+# idf = out[0]
+# outputname = out[1]
+# idf.save(outputname)
