@@ -14,6 +14,7 @@ def take_epw(files):
 # files.sort()
 # epw_files = take_epw(files)
 epw_files = ['C:/Users/LabEEE_1-2/Dropbox/novo RTQ-R/1_planejamento/arq_climaticos/leonardo/BRA_SP_Sao.Paulo.837810_INMET.epw']
+
 for file in epw_files:
     csv_file = open(file, 'r')
     epw_file = csv.reader(csv_file, delimiter=',', quotechar= '|')
