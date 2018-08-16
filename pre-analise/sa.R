@@ -58,6 +58,19 @@ sensivity <- function(name, df, y, n_delta, second=FALSE, total=FALSE){
   return (var(mean_values)/var(df[y]))
 }
 
+df_sa2 <- df_sa
+df_sa2$X <- df_sa2$file <- df_sa2$zone <- NULL
+sa_x <- colnames(df_sa2)[! colnames(df_sa2) %in% 'EHF']
+
+
+
+for(name in sa_x){
+  print(name)
+  print(sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)[[1]])
+}
+
+sensivity('shading',df = df_sa2,y = 'EHF',n_delta = 2, total = TRUE)[[1]]
+
 sensivity('x1',df = df,y = 'y',n_delta = 1000)
 
 sensivity(c('x2','x3'),df = df,y = 'y',n_delta = 50, second = TRUE)

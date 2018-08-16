@@ -7,12 +7,29 @@ month_means$mont_num <- c(1,2,3,4,5,6,7,8,9,10,11,12)
 setwd('C:/Users/LabEEE_1-2/idf-creator/pre-analise/')
 
 files <- list.files(pattern = '*.idf')
-files <- files[1900:2009]
+
+df_files <- data.frame('file' = files)
+cond0 <- substr(df_files$file, nchar(df_files$file)-8,nchar(df_files$file)-8) == "_"
+df_files$file_fix[cond0] <- df_files$file[cond0]
+
+cond1 <- substr(df_files$file, nchar(df_files$file)-5,nchar(df_files$file)-5) == "_"
+df_files$file_fix[cond1] <- paste(substr(df_files$file[cond1], 1,12),"000",substr(df_files$file[cond1], nchar(df_files$file[cond1])-4,nchar(df_files$file[cond1])), sep = '')
+
+cond2 <- substr(df_files$file, nchar(df_files$file)-2,nchar(df_files$file)-2) == "_"
+df_files$file_fix[cond2] <- paste(substr(df_files$file[cond2], 1,12),"00",substr(df_files$file[cond2], nchar(df_files$file[cond2])-5,nchar(df_files$file[cond2])), sep = '')
+
+cond3 <- substr(df_files$file, nchar(df_files$file)-3,nchar(df_files$file)-3) == "_"
+df_files$file_fix[cond3] <- paste(substr(df_files$file[cond3], 1,12),"0",substr(df_files$file[cond3], nchar(df_files$file[cond3])-6,nchar(df_files$file[cond3])), sep = '')
+
+df_files$file <- df_files$filefix
+colnames(df_files)[colnames(df_files) == 'file_fix'] <- 'file'
+
+#files <- files[1900:2009]
 df_EHF <- data.frame('file'= rep(NA,length(files)*15), 'zone'= rep(NA,length(files)*15), 'EHF' = rep(NA,length(files)*15))
 line <- 0
 
 #zones_seq <- c(6,12,18,24) 
-for (file in files){
+for (file in df_files$file){
   print(file)
   
   csv_file <- paste(substr(file,1,nchar(file)-3),'csv',sep = '')
@@ -236,35 +253,31 @@ for (file in files){
 write.csv(df_EHF,'EHF3.csv')
 
 # ----
+setwd('C:/Users/LabEEE_1-2/idf-creator/')
 
 df_ehf1 <- read.csv('EHF1.csv')
 df_ehf1$file <- as.character(df_ehf1$file)
 nacount <- is.na(df_ehf1$file) # elimina os NA e coloca o nome do arquivo correto
+nacount <- is.na(df_ehf_test$file) # elimina os NA e coloca o nome do arquivo correto
 df_ehf1$X[nacount]
-df_ehf1$file[1059] <- 'pre-analise_1950'
-df_ehf1$file[2398] <- 'pre-analise_3155'
-df_ehf1$file[3161] <- 'pre-analise_873'
 
 df_ehf2 <- read.csv('EHF2.csv')
 df_ehf2$file <- as.character(df_ehf2$file)
 nacount <- is.na(df_ehf2$file)
 df_ehf2$X[nacount]
-df_ehf2$file[1262] <- 'pre-analise_4561'
-df_ehf2$file[1474] <- 'pre-analise_4773'
 
-df_ehf3 <- read.csv('EHF.csv')
+df_ehf3 <- read.csv('pre-analise/EHF3.csv')
 df_ehf3$file <- as.character(df_ehf3$file)
 nacount <- is.na(df_ehf3$file)
 df_ehf3$X[nacount]
-df_ehf3$file[226] <- 'pre-analise_6825'
-df_ehf3$file[1994] <- 'pre-analise_8593'
 
-df_ehf <- rbind(df_ehf1,df_ehf2,df_ehf3)
+df_ehf <- rbind(df_ehf_test,df_ehf2,df_ehf3)
 
 nacount <- is.na(df_ehf$file)
 length(nacount[nacount == TRUE])
 length(unique(df_ehf$file))
 
+'''
 cond0 <- substr(df_ehf$file, nchar(df_ehf$file)-4,nchar(df_ehf$file)-4) == "_"
 df_ehf$file_fix[cond0] <- df_ehf$file[cond0]
 
@@ -280,6 +293,7 @@ df_ehf$file_fix[cond3] <- paste(substr(df_ehf$file[cond3], 1,12),"0",substr(df_e
 df_ehf$file <- df_ehf$filefix
 df_ehf$file_fix <- df_ehf$file
 colnames(df_ehf)[colnames(df_ehf) == 'file_fix'] <- 'file'
+'''
 
 # ----
 
@@ -295,12 +309,12 @@ df_sa <- data.frame('area' = rep(df_bldg$area,times=rep(c(6,12,18,24),2475)),
                     'u_wall' = rep(df_bldg$u_wall,times=rep(c(6,12,18,24),2475)),
                     'corr_vent' = rep(df_bldg$corr_vent,times=rep(c(6,12,18,24),2475)),
                     'stairs' = rep(df_bldg$stairs,times=rep(c(6,12,18,24),2475)))
-df_sa <- data.frame(rep(df_bldg,times=rep(c(6,12,18,24),2475)))
 
-df_sa <- cbind(df_sa, df_office)
-                    
+df_sa <- cbind(df_sa, df_office, df_ehf)
+write.csv(df_sa,'df_sa.csv')
+       
 # falied ----
-ehf_NA <- is.na(df_ehf$EHF)
-failed <- df_ehf$file[ehf_NA]
-failed
-df_ehf_sa <- df_ehf[ is.na(df_ehf$EHF) == FALSE, ]
+ehf_NA <- is.na(df_sa$EHF)
+failed <- unique(df_sa$file[ehf_NA])
+length(failed)
+df_sa <- df_sa[!is.na(df_sa$EHF), ]
