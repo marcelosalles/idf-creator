@@ -1,10 +1,14 @@
 library(ggplot2)
+
+# DF generico ----
 x<- 50000
 df <- data.frame('x1'=-1+seq(0,x-1)*2/x,
                  'x2'=runif(x,-1,1),
                  'x3'=runif(x,-1,1),
                  'x4'=runif(x,-1,1),
                  'y' =as.numeric(seq(1,x)))
+
+# funcoes ----
 
 filter <- function(x, df, lower_delta, upper_delta, type){
   if(type == 'total'){
@@ -25,7 +29,7 @@ filter <- function(x, df, lower_delta, upper_delta, type){
   return(sub_df)
 }
            
-sensivity <- function(name, df, y, n_delta, second=FALSE, total=FALSE){
+sensivity <- function(name, df, y, n_delta, second=FALSE, total=FALSE, plot = FALSE){
   lower_bound <- -1
   upper_bound <- 1
   delta <- (upper_bound-lower_bound)/n_delta
@@ -53,11 +57,7 @@ sensivity <- function(name, df, y, n_delta, second=FALSE, total=FALSE){
     mean_value <- mean(sub_df[[y]])
     mean_values[i] <- mean_value
   }
-  return(mean_values)
-
-  #print(var(mean_values))
-  #print(var(df[y]))
-  #return (var(mean_values)/var(df[y]))
+  ifelse(plot == TRUE, return(mean_values),return (var(mean_values)/var(df[[y]])))
 }
 
 sec_order <- function(vec){
@@ -76,10 +76,39 @@ sec_order <- function(vec){
   return(names_list)
 }
 
+# testes ----
+
 sec_order(c('po','oi','ui','uioio','jkhjk','hjkhjkh','eeiii'))
 
-setwd('C:/Users/LabEEE_1-2/idf-creator/')
+sensivity('shading',df = df_sa2,y = 'EHF',n_delta = 2, total = TRUE)[[1]]
+
+sensivity('area',df = df_sa2,y = 'EHF',n_delta = 100)
+
+sensivity(c('x2','x3'),df = df,y = 'y',n_delta = 50, second = TRUE)
+
+sensivity('x1',df = df,y = 'y',n_delta = 20, total = TRUE)
+
+cargatermica <- sensivity('thermal_loads',df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
+
+cg <- sensivity('thermal_loads',df = df_sa2,y = 'EHF',n_delta = 100)
+
+var(cargatermica)
+cg
+
+u_wall <- sensivity('u_wall',df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
+
+var_EHF <- var(df_sa2$EHF)
+
+var(cargatermica)/var_EHF
+
+# baixando o DF ----
+
+setwd('D:/LabEEE_1-2/idf-creator/')
 df_sa <- read.csv('df_sa.csv')
+
+#df_sa$ori <- ifelse(df_sa$zone%%2 == 0, df_sa$ori <- (179.95 * (1 + df_sa$azimuth) - 90)%%360, df_sa$ori <- (179.95 * (1 + df_sa$azimuth) + 90)%%360)
+df_sa$ori <- ifelse(df_sa$zone%%6 == 5,df_sa$ori <- df_sa$azimuth, ifelse(df_sa$zone%%2 == 0, df_sa$ori <- (df_sa$azimuth+.5)%%2-1, df_sa$ori <- (df_sa$azimuth+1.5)%%2-1))
+
 df_sa2 <- df_sa
 df_sa2$X <- df_sa2$X.1 <- df_sa2$file <- df_sa2$zone <- NULL
 sa_x <- colnames(df_sa2)[! colnames(df_sa2) %in% 'EHF']
@@ -90,144 +119,153 @@ sa_x <- colnames(df_sa2)[! colnames(df_sa2) %in% 'EHF']
 # 
 # sa_x <- colnames(df_sa2)[! colnames(df_sa2) %in% 'EHF']
 
+# first order ----
 df_frst <- data.frame('x' = sa_x)
 df_frst$S1 <- NA
 df_frst$Stot <- NA
-for(i in 1:nrow(df_frst)){
-  #print(name)
-  #df_frst$S1[i] <- sensivity(df_frst$x[i],df = df_sa2,y = 'EHF',n_delta = 100)[[1]]
-  mean <- sensivity(df_frst$x[i],df = df_sa2,y = 'EHF',n_delta = 100)
-  print(mean)
-  df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
-  df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
-
-  ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(df_frst$x[i])
-  #df_frst$Stot[i] <- 1-sensivity(df_frst$x[i],df = df_sa2,y = 'EHF',n_delta = 2, total = TRUE)[[1]]
+for(name in sa_x){
+  print(name)
+  df_frst$S1[df_frst$x == name] <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+  df_frst$Stot[df_frst$x == name] <- 1-sensivity(name,df = df_sa2,y = 'EHF',n_delta = 2, total = TRUE)
 }
+
+# 2nd Order ----
 
 df_scnd <- sec_order(sa_x)
 df_scnd$S <- NA
-for(i in 1:nrow(df_scnd)){
+for(name in df_scnd$x1){
   #print(c(df_scnd$x1[i],df_scnd$x2[i]))
-  df_scnd$S[i] <- sensivity(c(df_scnd$x1[i],df_scnd$x2[i]),df = df_sa2,y = 'EHF',n_delta = 10, second = TRUE)[[1]]
+  df_scnd$S[df_scnd$x1 == name] <- sensivity(c(name,df_scnd$x2[df_scnd$x1 == name]),df = df_sa2,y = 'EHF',n_delta = 10, second = TRUE)
 }
 
 df_scnd$S2 <- NA
 for(i in 1:nrow(df_scnd)){
+  print(df_scnd$x1[i])
+  print(df_scnd$x2[i])
+  print(df_frst$x[df_frst$x == df_scnd$x1[i]])
+  print(df_frst$x[df_frst$x == df_scnd$x2[i]])
   df_scnd$S2[i] <- df_scnd$S[i] - df_frst$S1[df_frst$x == df_scnd$x1[i]] - df_frst$S1[df_frst$x == df_scnd$x2[i]]
 }
-sensivity('shading',df = df_sa2,y = 'EHF',n_delta = 2, total = TRUE)[[1]]
 
-sensivity('area',df = df_sa2,y = 'EHF',n_delta = 100)
-
-sensivity(c('x2','x3'),df = df,y = 'y',n_delta = 50, second = TRUE)
-
-sensivity('x1',df = df,y = 'y',n_delta = 20, total = TRUE)
 # ---- first ----
 
 name = 'area'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name) +
   ylab('EHF') +
-  xlab(name)
+  xlab(name) +
+  ylim(0.6,1)
 
 name = 'ratio'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name) +
   ylab('EHF') +
-  xlab(name)
+  xlab(name) +
+  ylim(0.6,1)
 
 name = 'abs'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle('Absortância') +
   ylab('EHF') +
-  xlab('Absortância')
+  xlab('Absortância') +
+  ylim(0.6,1)
 
 name = 'shading'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name) +
   ylab('EHF') +
-  xlab(name)
+  xlab(name) +
+  ylim(0.6,1)
 
-name = 'azimuth'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+name = 'ori'
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name) +
   ylab('EHF') +
-  xlab(name)
+  xlab(name) +
+  ylim(0.6,1)
 
 name = 'u_wall'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name) +
   ylab('EHF') +
-  xlab(name)
+  xlab(name) +
+  ylim(0.6,1)
 
 name = 'corr_vent'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name) +
   ylab('EHF') +
-  xlab(name)
+  xlab(name) +
+  ylim(0.6,1)
 
 name = 'stairs'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name) +
   ylab('EHF') +
-  xlab(name)
+  xlab(name) +
+  ylim(0.6,1)
 
 name = 'open_fac'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle('Fator de abertura') +
   ylab('EHF') +
-  xlab('Fator de abertura')
+  xlab('Fator de abertura') +
+  ylim(0.6,1)
 
 name = 'thermal_loads'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle('Carga Térmica') +
   ylab('EHF') +
-  xlab('Carga Térmica')
+  xlab('Carga Térmica') +
+  ylim(0.6,1)
 
 name = 'glass'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name) +
   ylab('EHF') +
-  xlab(name)
+  xlab(name) +
+  ylim(0.6,1)
 
 name = 'height'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name) +
   ylab('EHF') +
-  xlab(name)
+  xlab(name) +
+  ylim(0.6,1)
 
 name = 'wwr'
-mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100)
+mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 100, plot = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle('PAF') +
   ylab('EHF') +
-  xlab('PAF')
+  xlab('PAF') +
+  ylim(0.6,1)
+
 # ---- total ----
 
 name = 'area'
@@ -307,3 +345,39 @@ mean <- sensivity(name,df = df_sa2,y = 'EHF',n_delta = 2, total = TRUE)
 df_plot <- data.frame('x' = rep(NA,length(mean)), 'EHF' = mean)
 df_plot$x <- -1.01 + seq(1,length(mean))*(2/length(mean))
 ggplot(df_plot,aes(df_plot$x,df_plot$EHF)) + geom_point() + ggtitle(name)
+
+# ---- histo ----
+hist(df_sa$EHF)
+
+df_plot <- df_sa
+df_plot$EHF <- (df_plot$EHF) **(4)
+ggplot(df_plot, aes(df_plot$EHF)) + geom_histogram(binwidth = .01) + ggtitle('EHF')
+
+
+df_base <- df_sa
+df_base$X.1 <- df_base$X <- df_base$file <- df_base$zone <- NULL
+
+i <- 100
+df_i <- df_base[sample(nrow(df_base), i), ]
+#df_i <- apply(df_i,2,as.numeric)
+preview_mean <- mean(apply(df_i,2,mean))
+i <- i*1.1
+df_i <- df_base[sample(nrow(df_base), round(i)), ]
+#df_i <- apply(df_i,2,as.numeric)
+current_mean <- mean(apply(df_i,2,mean))
+
+while((current_mean - preview_mean)**2 > (.0001)**2){
+  print(current_mean - preview_mean)
+  
+  preview_mean <- current_mean
+  i <- i*1.1
+  df_i <- df_base[sample(nrow(df_base), round(i)), ]
+  #df_i <- apply(df_i,2,as.numeric)
+  current_mean <- mean(apply(df_i,2,mean))
+}
+
+print(current_mean - preview_mean)
+
+print(i)
+
+apply(df_base[sample(nrow(df_base), 5000), ],2,mean)  #- apply(df_base[sample(nrow(df_base), 100), ],2,mean)

@@ -1,8 +1,14 @@
+.Rdata
+.idea/
 *.mtr
 *.epg
 *.Rhistory
+# Energyplus files
 *.grp
+*.end
+*.epJSON
 *.errgrp
+*.idd
 *.idf
 *.csv
 *.bnd

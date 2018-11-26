@@ -157,7 +157,8 @@ for line in range(len(bldg_feat)):
     u_wall = bldg_feat['u_wall'][line]
     corr_vent = bldg_feat['corr_vent'][line]
     stairs = bldg_feat['stairs'][line]
-    output = 'pre-analise_'+str(line)+'.idf'
+    caso = '{:04.0f}'.format(line)
+    output = ('pre-analise_{}.idf'.format(caso))
 
     out = main(zone_area=area,zone_ratio=ratio,zone_height=height,absorptance=absorptance,
     shading=shading,azimuth= azimuth,corr_width=2,wall_u=u_wall,corr_vent=corr_vent,

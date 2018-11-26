@@ -10,12 +10,12 @@ import pandas as pd
 
 
 def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, shading = 1, azimuth = 0,
-    corr_width = 2, wall_u = 2.5, corr_vent = 1, stairs = 1, zone_feat = None,
-    zones_x_floor = 6, n_floors = 2, input = "modelo.idf",output = 'output.idf'):
+    corr_width = 2, wall_u = 2.5, corr_vent = 1, zone_feat = None, floor_height=0, room_type=0,
+	thermal_loads=20, glass_fs=.87, wwr=.33, open_fac=.5, input = "modelo_single.idf", output = 'output.idf'):
     
     print(output)
 
-    idf=IDF(input)
+    idf=dict()
 
     # Making sure numbers are not srings ----------
 
@@ -27,14 +27,17 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
     azimuth = int(azimuth)
     corr_width = float(corr_width)
     wall_u = float(wall_u)
-    zones_x_floor = int(zones_x_floor)
-    n_floors = int(n_floors)
+    floor_height = float(floor_height)
+    thermal_loads = float(thermal_loads)
+    glass_fs = float(glass_fs)
+    wwr = float(wwr)
+    open_fac = float(open_fac)
 
     # editing subdf thermal load
 
-    zone_feat['electric'] = zone_feat['thermal_loads']*.1124
-    zone_feat['people'] = (zone_feat['thermal_loads']*.7076)*math.pow(120, -1)
-    zone_feat['lights'] =zone_feat['thermal_loads']*.18
+    electric = thermal_loads*.1124
+    people = (thermal_loads*.7076)*math.pow(120, -1)
+    lights = thermal_loads*.18
 
     # Defining U
 
@@ -43,12 +46,10 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
     c_brick = .066*math.pow((.2875 * R_mat), -1)
     R_air = (.62727273 * R_mat)
 
-    # Defining dependent variabloes ----------
+    # Defining dependent variables ----------
 
     zone_length = math.sqrt(zone_area *math.pow(zone_ratio,-1))
     zone_width = (zone_area *math.pow(zone_length,-1))
-    n_zones = zones_x_floor * n_floors
-    zones_in_sequence = int(zones_x_floor*.5)
 
     x0_second_row = (zone_width) + (corr_width) 
 
@@ -60,58 +61,6 @@ def main(zone_area = 10, zone_ratio = 1.5, zone_height = 3, absorptance = .5, sh
     door_width = .9
     dist_door_wall = .5
     door_height = 2.1
-
-    # thermal loads lists
-
-    electric = []
-    lights = []
-    people = []
-
-    for i in range(n_zones):
-        electric.append(zone_feat['electric'][i])
-        lights.append(zone_feat['lights'][i])
-        people.append(zone_feat['people'][i])
-
-    # Zones --------------------
-
-    zones_list = []
-
-    for i in range(n_zones):
-        zones_list.append( 'zone_' + str(i) )
-
-    for i in range(n_floors):
-        zones_list.append( 'corridor_' + str(i) )
-
-    # x,y,z of zones' origins
-
-    zones_x = []
-    zones_y = []
-    zones_z = []
-
-    for i in range(n_floors):
-        
-        y = 0
-
-        for j in range(zones_in_sequence):
-            
-            
-            zones_x.append(0)
-            zones_y.append(y)
-            zones_z.append(i*zone_height)
-            
-            zones_x.append(x0_second_row)
-            zones_y.append(y)
-            zones_z.append(i*zone_height)
-            
-            y += zone_length
-
-    for i in range(n_floors):
-        zones_x.append(zone_width)
-        zones_y.append(0)
-        zones_z.append(i*zone_height)
-   
-    offices = zones_list[:-n_floors]
-    corridors = zones_list[-n_floors:]
 
     # Surfaces creation --------------------
 
