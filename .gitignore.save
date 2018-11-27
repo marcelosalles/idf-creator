@@ -1,0 +1,26 @@
+.Rdata
+./idea
+*.mtr
+*.epg
+*.Rhistory
+*.grp
+# Energyplus files
+*.errgrp
+*.idd
+*.idf
+*.csv
+*.bnd
+*.epJSONout
+*.audit
+*.eio
+*.err
+*.eso
+*.mdd
+*.mtd
+*.rdd
+*.rvaudit
+*.shd
+*.svg
+*.html
+*.pyc
+__py_cache__/

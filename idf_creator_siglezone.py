@@ -1,8 +1,15 @@
+# The names given to the surfaces go from 0 to 3, being 0 up, 1 right,
+# 2 down, 3 left. 
+
 import json
 
-def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5, shading=1, azimuth=0, bldg_ratio=1,
-    corr_width=2, wall_u=2.5, wall_ct=100, floor_height=0, room_type='0_window', ground=0,  # corr_vent=1, 
-    roof=0, thermal_loads=20, glass_fs=.87, wwr=.33, open_fac=.5, input="seed_single.json", output='output.idf'):
+# WALL_TYPE = 'concrete_eps'  # define the way wall is built
+
+def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
+    shading=1, azimuth=0, bldg_ratio=1, corr_width=2, wall_u=2.5,
+    wall_ct=100, floor_height=0, room_type='0_window', ground=0,  # corr_vent=1, 
+    roof=0, thermal_loads=20, people=.1, glass_fs=.87, wwr=.33,
+    open_fac=.5, input="seed_single.json", output='output.idf'):
     
     print(output)
 
@@ -24,19 +31,33 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5, shading=1, a
     wwr = float(wwr)
     open_fac = float(open_fac)
 
-    # editing subdf thermal load
+    # editing thermal load
 
-    electric = thermal_loads*.1124
-    people = (thermal_loads*.7076)/120
-    lights = thermal_loads*.18
+    electric = float(thermal_loads)
+    people = float(people)
+    lights = 10.50  # DPI nivel A RTQ-R - Escritório Planta livre
 
     # Defining U
-
+    
+    #if WALL_TYPE == 'standard':
     R_mat = (1-.17*wall_u)/wall_u
     c_plaster = .025/(.085227272727273 * R_mat)
     c_brick = .066/(.2875 * R_mat)
     R_air = (.62727273 * R_mat)
 
+    #elif WALL_TYPE == 'concrete_eps':
+    
+    c_concrete = 1.75  # condutivity
+    e_concrete = (wall_ct*1000)/(1000*2200)  # specific heat and density
+    R_concrete = e_concrete/c_concrete
+    R_eps = (1-(.17+R_concrete)*wall_u)/wall_u
+    esp = True
+    if R_eps < 0.001:
+        esp = False
+        c_concrete = (wall_u*e_concrete)/(1-.17*wall_u)
+        print('conductivity concrete: ', c_concrete)
+        print('wall_u: ', wall_u, '\n', 'wall_ct: ', wall_ct)
+        
     # Defining dependent variables ----------
 
     zone_x = (zone_area/zone_ratio)**(1/2)
@@ -789,6 +810,18 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5, shading=1, a
             "thickness": 0.1,
             "visible_absorptance": 0.7
         },
+        "concrete": {
+            "idf_max_extensible_fields": 0,
+            "idf_max_fields": 9,
+            "conductivity": c_concrete,
+            "density": 2200.0,
+            "roughness": "Rough",
+            "solar_absorptance": 0.7,
+            "specific_heat": 1000.0,
+            "thermal_absorptance": 0.9,
+            "thickness": e_concrete,
+            "visible_absorptance": 0.7
+        },
         "PisoCeramico(10mm)": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 9,
@@ -824,8 +857,21 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5, shading=1, a
             "thermal_absorptance": 0.9,
             "thickness": 0.01,
             "visible_absorptance": 0.7
-        },
+        }
     }
+    
+    if esp:
+        idf['Material:NoMass'] = {
+            'EPS': {
+                "idf_max_extensible_fields": 0,
+                "idf_max_fields": 6,
+                'roughness': 'Smooth',
+                'thermal_resistance': R_eps,
+                'thermal_absorptance': .9,
+                'solar_absorptance': absorptance,
+                'visible_absorptance': .7
+            }
+        }
 
     idf["Material:AirGap"] = {
         "Atico:CamaradeAr(>50mm)": {
@@ -963,7 +1009,12 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5, shading=1, a
     with open(output, 'w') as file:
         file.write(json.dumps(idf))
 
-        
+''' 
+main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=90, bldg_ratio=1,
+    corr_width=2, wall_u=2.35, wall_ct=150, floor_height=15, room_type='0_window', ground=0,
+    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single_U-conc-eps.json", output='teste_U-conc-eps.epJSON')
+
+  
 # Generate cases
 main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=90, bldg_ratio=1,
     corr_width=2, wall_u=2.35, wall_ct=100, floor_height=15, room_type='0_window', ground=0,
@@ -1025,3 +1076,4 @@ main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, az
 main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=180, bldg_ratio=1,
     corr_width=2, wall_u=2.35, wall_ct=100, floor_height=21, room_type='3_window', ground=0,
     roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn45-90_3.epJSON')
+'''
