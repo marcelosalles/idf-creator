@@ -1,5 +1,7 @@
 .Rdata
 .idea/
+sobol_single/cluster*
+sobol_single/compare
 *.mtr
 *.epg
 *.Rhistory

@@ -69,15 +69,12 @@
         },
         "Interior Wall": {
             "idf_max_extensible_fields": 0,
-            "idf_max_fields": 3,
-            "layer_2": "LajeMacicaConcreto",
-            "outside_layer": "EPS"
-        },
-        "Exterior Wall": {
-            "idf_max_extensible_fields": 0,
-            "idf_max_fields": 3,
-            "layer_2": "LajeMacicaConcreto",
-            "outside_layer": "EPS"
+            "idf_max_fields": 6,
+            "layer_2": "Ceram Tij 8 fur circ (10 cm)",
+            "layer_3": "CavidadeBloco:CamaradeAr(20-50mm)",
+            "layer_4": "Ceram Tij 8 fur circ (10 cm)",
+            "layer_5": "ArgamassaReboco(25mm)",
+            "outside_layer": "ArgamassaReboco(25mm)"
         },
         "Interior Door": {
             "idf_max_extensible_fields": 0,

@@ -39,6 +39,26 @@
             "width_factor_for_opening_factor_2": 0.6
         }
     },
+    "Material:AirGap": {
+        "Atico:CamaradeAr(>50mm)": {
+            "idf_max_extensible_fields": 0,
+            "idf_max_fields": 2,
+            "idf_order": 29,
+            "thermal_resistance": 0.21
+        },
+        "F04 Wall air space resistance": {
+            "idf_max_extensible_fields": 0,
+            "idf_max_fields": 2,
+            "idf_order": 27,
+            "thermal_resistance": 0.15
+        },
+        "F05 Ceiling air space resistance": {
+            "idf_max_extensible_fields": 0,
+            "idf_max_fields": 2,
+            "idf_order": 28,
+            "thermal_resistance": 0.18
+        }
+    },
     "Construction": {
         "Interior Floor": {
             "layer_2": "LajeMacicaConcreto(100mm)",
@@ -95,10 +115,17 @@
             "idf_max_fields": 2,
             "outside_layer": "Clear 3mm"
         },
-        "glass_construction_office": {
+        "InfraRed": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 2,
-            "outside_layer": "glass_material_office"
+            "idf_order": 113,
+            "outside_layer": "IR"
+        }
+    },
+    "Material:InfraredTransparent": {
+        "IR": {
+            "idf_max_extensible_fields": 0,
+            "idf_max_fields": 1
         }
     },
     "GlobalGeometryRules": {

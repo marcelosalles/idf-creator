@@ -1,15 +1,22 @@
 # The names given to the surfaces go from 0 to 3, being 0 up, 1 right,
 # 2 down, 3 left. 
 
+import collections
 import json
 
-# WALL_TYPE = 'concrete_eps'  # define the way wall is built
-
+def update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.Mapping):
+            d[k] = update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
+    
 def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     shading=1, azimuth=0, bldg_ratio=1, corr_width=2, wall_u=2.5,
-    wall_ct=100, floor_height=0, room_type='0_window', ground=0,  # corr_vent=1, 
-    roof=0, thermal_loads=20, people=.1, glass_fs=.87, wwr=.33,
-    open_fac=.5, input="seed_single.json", output='output.idf'):
+    wall_ct=100, floor_height=0, room_type='0_window', ground=0,
+    roof=0, people=.1, glass_fs=.87, wwr=.33,  # thermal_loads=20,
+    open_fac=.5, input_file='seed.json' , output='output.epJSON'):
     
     print(output)
 
@@ -26,34 +33,26 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     wall_u = float(wall_u)
     wall_ct = float(wall_ct)
     floor_height = float(floor_height)
-    thermal_loads = float(thermal_loads)
+    # thermal_loads = float(thermal_loads)
     glass_fs = float(glass_fs)
     wwr = float(wwr)
     open_fac = float(open_fac)
 
     # editing thermal load
 
-    electric = float(thermal_loads)
+    # electric = float(thermal_loads)
     people = float(people)
-    lights = 10.50  # DPI nivel A RTQ-R - Escritório Planta livre
+    lights = 10.50  # DPI nivel A RTQ-R - Escritorio Planta livre
 
     # Defining U
-    
-    #if WALL_TYPE == 'standard':
-    R_mat = (1-.17*wall_u)/wall_u
-    c_plaster = .025/(.085227272727273 * R_mat)
-    c_brick = .066/(.2875 * R_mat)
-    R_air = (.62727273 * R_mat)
 
-    #elif WALL_TYPE == 'concrete_eps':
-    
     c_concrete = 1.75  # condutivity
     e_concrete = (wall_ct*1000)/(1000*2200)  # specific heat and density
     R_concrete = e_concrete/c_concrete
     R_eps = (1-(.17+R_concrete)*wall_u)/wall_u
-    esp = True
+    eps = True
     if R_eps < 0.001:
-        esp = False
+        eps = False
         c_concrete = (wall_u*e_concrete)/(1-.17*wall_u)
         print('conductivity concrete: ', c_concrete)
         print('wall_u: ', wall_u, '\n', 'wall_ct: ', wall_ct)
@@ -75,10 +74,10 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     door_height = 2.1
 
     # START BUILDING OBJECTS
-    idf = dict()
+    model = dict()
 
     ##### Building
-    idf["Building"] = {
+    model["Building"] = {
         output[:-7]: {
             "loads_convergence_tolerance_value": 0.04,
             "maximum_number_of_warmup_days": 25,
@@ -92,8 +91,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     }
 
     ##### ZONES
-
-    idf["Zone"] = {
+    model["Zone"] = {
         "corridor": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 7,
@@ -115,7 +113,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     }
 
     ##### Building Surface
-    idf["BuildingSurface:Detailed"] = {
+    model["BuildingSurface:Detailed"] = {
 
         # Ceiling
         "ceiling_corridor": {
@@ -482,8 +480,8 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
             "wind_exposure": "WindExposed"
         }
 
-    idf["BuildingSurface:Detailed"]["ceiling_corridor"].update(ceiling_bound)
-    idf["BuildingSurface:Detailed"]["ceiling_office"].update(ceiling_bound)
+    model["BuildingSurface:Detailed"]["ceiling_corridor"].update(ceiling_bound)
+    model["BuildingSurface:Detailed"]["ceiling_office"].update(ceiling_bound)
 
     # Bottom condition
     if ground == 0:
@@ -502,8 +500,8 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
             "wind_exposure": "NoWind"
         }
 
-    idf["BuildingSurface:Detailed"]["floor_corridor"].update(ground_bound)
-    idf["BuildingSurface:Detailed"]["floor_office"].update(ground_bound)
+    model["BuildingSurface:Detailed"]["floor_corridor"].update(ground_bound)
+    model["BuildingSurface:Detailed"]["floor_office"].update(ground_bound)
 
     # Wall exposition condition
     exposed_wall = {
@@ -520,16 +518,16 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     }
 
     if room_type == '0_window':
-        idf["BuildingSurface:Detailed"]["wall-1_office"].update(interior_wall)
-        idf["BuildingSurface:Detailed"]["wall-3_office"].update(interior_wall)
+        model["BuildingSurface:Detailed"]["wall-1_office"].update(interior_wall)
+        model["BuildingSurface:Detailed"]["wall-3_office"].update(interior_wall)
 
     elif room_type == '1_window' or room_type == '1_wall':
-        idf["BuildingSurface:Detailed"]["wall-1_office"].update(exposed_wall)
-        idf["BuildingSurface:Detailed"]["wall-3_office"].update(interior_wall)
+        model["BuildingSurface:Detailed"]["wall-1_office"].update(exposed_wall)
+        model["BuildingSurface:Detailed"]["wall-3_office"].update(interior_wall)
 
     elif room_type == '3_window' or room_type == '3_wall':
-        idf["BuildingSurface:Detailed"]["wall-1_office"].update(interior_wall)
-        idf["BuildingSurface:Detailed"]["wall-3_office"].update(exposed_wall)
+        model["BuildingSurface:Detailed"]["wall-1_office"].update(interior_wall)
+        model["BuildingSurface:Detailed"]["wall-3_office"].update(exposed_wall)
 
     # Add some needed information
 
@@ -539,12 +537,12 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
         "number_of_vertices": 4.0
     }
 
-    for obj in idf["BuildingSurface:Detailed"]:
-        idf["BuildingSurface:Detailed"][obj].update(needed_info)
+    for obj in model["BuildingSurface:Detailed"]:
+        model["BuildingSurface:Detailed"][obj].update(needed_info)
 
     #### FENESTRATION
 
-    idf["FenestrationSurface:Detailed"] = {
+    model["FenestrationSurface:Detailed"] = {
         "door_corridor": {
             "building_surface_name": "wall-0_corridor",
             "construction_name": "Interior Door",
@@ -642,7 +640,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     }
 
     if room_type == '1_window':
-        idf["FenestrationSurface:Detailed"].update({
+        model["FenestrationSurface:Detailed"].update({
             "window_side_office": {
                 "building_surface_name": "wall-1_office",
                 "construction_name": "glass_construction_office",
@@ -664,7 +662,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
         })
 
     elif room_type == '3_window':
-        idf["FenestrationSurface:Detailed"].update({
+        model["FenestrationSurface:Detailed"].update({
             "window_side_office": {
                 "building_surface_name": "wall-3_office",
                 "construction_name": "glass_construction_office",
@@ -685,25 +683,123 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
             }
         })
     
-    for obj in idf['FenestrationSurface:Detailed']:
-        idf['FenestrationSurface:Detailed'][obj].update({
+    for obj in model['FenestrationSurface:Detailed']:
+        model['FenestrationSurface:Detailed'][obj].update({
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 22
         })
-
+    
+    #### SHADING vertex_x_coordinate
+    
+    
+    if shading > 0.01:
+		
+        y_shading = zone_y + corr_width
+        z_shading = floor_height+window_z2
+        
+        model['Shading:Building:Detailed'] = {
+            'shading_0': {
+                "idf_max_extensible_fields": 12,
+                "idf_max_fields": 15,
+                'transmittance_schedule_name': '',
+                'number_of_vertices': 4,
+                "vertices": [
+                    {
+                    "vertex_x_coordinate": 0,
+                    "vertex_y_coordinate": y_shading+shading,
+                    "vertex_z_coordinate": z_shading
+                    },
+                    {
+                    "vertex_x_coordinate": 0,
+                    "vertex_y_coordinate": y_shading,
+                    "vertex_z_coordinate": z_shading
+                    },
+                    {
+                    "vertex_x_coordinate": zone_x,
+                    "vertex_y_coordinate": y_shading,
+                    "vertex_z_coordinate": z_shading
+                    },
+                    {
+                    "vertex_x_coordinate": zone_x,
+                    "vertex_y_coordinate": y_shading+shading,
+                    "vertex_z_coordinate": z_shading
+                    }
+                ]
+            }
+        }
+        if room_type == '1_window':
+            model['Shading:Building:Detailed']['shading_1'] = {
+                "idf_max_extensible_fields": 12,
+                "idf_max_fields": 15,
+                'transmittance_schedule_name': '',
+                'number_of_vertices': 4,
+                "vertices": [
+                    {
+                    "vertex_x_coordinate": zone_x+shading,
+                    "vertex_y_coordinate": y_shading,
+                    "vertex_z_coordinate": z_shading
+                    },
+                    {
+                    "vertex_x_coordinate": zone_x,
+                    "vertex_y_coordinate": y_shading,
+                    "vertex_z_coordinate": z_shading
+                    },
+                    {
+                    "vertex_x_coordinate": zone_x,
+                    "vertex_y_coordinate": corr_width,
+                    "vertex_z_coordinate": z_shading
+                    },
+                    {
+                    "vertex_x_coordinate": zone_x+shading,
+                    "vertex_y_coordinate": corr_width,
+                    "vertex_z_coordinate": z_shading
+                    }
+                ]
+            }
+            
+        if room_type == '3_window':
+            model['Shading:Building:Detailed']['shading_3'] = {
+                "idf_max_extensible_fields": 12,
+                "idf_max_fields": 15,
+                'transmittance_schedule_name': '',
+                'number_of_vertices': 4,
+                "vertices": [
+                    {
+                    "vertex_x_coordinate": -shading,
+                    "vertex_y_coordinate": corr_width,
+                    "vertex_z_coordinate": z_shading
+                    },
+                    {
+                    "vertex_x_coordinate": 0,
+                    "vertex_y_coordinate": corr_width,
+                    "vertex_z_coordinate": z_shading
+                    },
+                    {
+                    "vertex_x_coordinate": 0,
+                    "vertex_y_coordinate": y_shading,
+                    "vertex_z_coordinate": z_shading,
+                    },
+                    {
+                    "vertex_x_coordinate": -shading,
+                    "vertex_y_coordinate": y_shading,
+                    "vertex_z_coordinate": z_shading
+                    }
+                ]
+            }
+         
     #### THERMAL LOADS
 
-    idf["ElectricEquipment"] = {
+    model["ElectricEquipment"] = {
         "equip_office": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 11,
-            "design_level_calculation_method": "Watts/Area",
+            "design_level_calculation_method": "Watts/Person",
             "end_use_subcategory": "General",
             "fraction_latent": 0.0,
             "fraction_lost": 0.0,
             "fraction_radiant": 0.5,
             "schedule_name": "Sch_Equip_Computador",
-            "watts_per_zone_floor_area": electric,
+            "watts_per_person": 150,
             "zone_or_zonelist_name": "office"
         },
         "equip_corredor": {
@@ -720,7 +816,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
         }
     }
 
-    idf["Lights"] = {
+    model["Lights"] = {
         "lights_office": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 11,
@@ -735,7 +831,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
         }
     }
 
-    idf["People"] = {
+    model["People"] = {
         "people_office": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 10,
@@ -751,11 +847,11 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
 
     #### MATERIALS
 
-    idf["Material"] = {
+    model["Material"] = {
         "ArgamassaReboco(25mm)": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 9,
-            "conductivity": c_plaster,
+            "conductivity": 1.15,
             "density": 2000.0,
             "roughness": "Rough",
             "solar_absorptance": absorptance,
@@ -767,7 +863,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
         "Ceram Tij 8 fur circ (10 cm)": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 7,
-            "conductivity": c_brick,
+            "conductivity": .9,
             "density": 1103.0,
             "roughness": "Rough",
             "specific_heat": 920.0,
@@ -860,8 +956,8 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
         }
     }
     
-    if esp:
-        idf['Material:NoMass'] = {
+    if eps:
+        model['Material:NoMass'] = {
             'EPS': {
                 "idf_max_extensible_fields": 0,
                 "idf_max_fields": 6,
@@ -873,7 +969,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
             }
         }
 
-    idf["Material:AirGap"] = {
+    model["Material:AirGap"] = {
         "Atico:CamaradeAr(>50mm)": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 2,
@@ -882,11 +978,11 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
         "CavidadeBloco:CamaradeAr(20-50mm)": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 2,
-            "thermal_resistance": R_air
+            "thermal_resistance": .16
         }
     }
 
-    idf["WindowMaterial:SimpleGlazingSystem"] = {
+    model["WindowMaterial:SimpleGlazingSystem"] = {
         "Clear 3mm": {
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 3,
@@ -904,17 +1000,23 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     #### AFN OBJECTS
 
     # AFN Simulation Control
-    idf["AirflowNetwork:SimulationControl"] = {
+    if bldg_ratio > 1:
+        bldg_ratio = 1/bldg_ratio
+        wind_azimuth = azimuth%180
+    else:
+        wind_azimuth = (azimuth+90)%180
+        
+    model["AirflowNetwork:SimulationControl"] = {
         "Ventilacao": {
             "absolute_airflow_convergence_tolerance": 0.0001,
             "airflownetwork_control": "MultizoneWithoutDistribution",
-            "azimuth_angle_of_long_axis_of_building": 0.0,
+            "azimuth_angle_of_long_axis_of_building": wind_azimuth,
             "building_type": "HighRise",
             "convergence_acceleration_limit": -0.5,
             "height_selection_for_local_wind_pressure_calculation": "OpeningHeight",
             "initialization_type": "ZeroNodePressures",
             "maximum_number_of_iterations": 500,
-            "ratio_of_building_width_along_short_axis_to_width_along_long_axis": bldg_ratio,  # ver isso!!!
+            "ratio_of_building_width_along_short_axis_to_width_along_long_axis": bldg_ratio,
             "relative_airflow_convergence_tolerance": 0.01,
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 12,
@@ -923,7 +1025,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     }
 
     # AFN Zone
-    idf["AirflowNetwork:MultiZone:Zone"] = {
+    model["AirflowNetwork:MultiZone:Zone"] = {
         "AirflowNetwork:MultiZone:Zone 1": {
             "indoor_and_outdoor_enthalpy_difference_upper_limit_for_minimum_venting_open_factor": 300000.0,
             "indoor_and_outdoor_temperature_difference_upper_limit_for_minimum_venting_open_factor": 100.0,
@@ -941,7 +1043,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     }
 
     # AFN Surface
-    idf["AirflowNetwork:MultiZone:Surface"] = {
+    model["AirflowNetwork:MultiZone:Surface"] = {
         "AirflowNetwork:MultiZone:Surface 1": {
             "indoor_and_outdoor_enthalpy_difference_upper_limit_for_minimum_venting_open_factor": 300000.0,
             "indoor_and_outdoor_temperature_difference_upper_limit_for_minimum_venting_open_factor": 100.0,
@@ -983,7 +1085,7 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
 
     if room_type == '3_window' or room_type == '1_window':
 
-        idf["AirflowNetwork:MultiZone:Surface"]["AirflowNetwork:MultiZone:Surface 5"] = {
+        model["AirflowNetwork:MultiZone:Surface"]["AirflowNetwork:MultiZone:Surface 5"] = {
             "indoor_and_outdoor_enthalpy_difference_upper_limit_for_minimum_venting_open_factor": 300000.0,
             "indoor_and_outdoor_temperature_difference_upper_limit_for_minimum_venting_open_factor": 100.0,
             "leakage_component_name": "Janela",
@@ -994,86 +1096,35 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
             "window_door_opening_factor_or_crack_factor": open_fac
         }
     
-    for obj in idf["AirflowNetwork:MultiZone:Surface"]:
+    for obj in model["AirflowNetwork:MultiZone:Surface"]:
         
-        idf["AirflowNetwork:MultiZone:Surface"][obj].update({
+        model["AirflowNetwork:MultiZone:Surface"][obj].update({
             "idf_max_extensible_fields": 0,
             "idf_max_fields": 12
         })
         
-    with open('seed_single.json', 'r') as file:
+    with open(input_file, 'r') as file:
         seed = json.loads(file.read())
     
-    idf.update(seed)
+    if eps:
+        seed["Construction"].update({
+            "Exterior Wall": {
+                "idf_max_extensible_fields": 0,
+                "idf_max_fields": 3,
+                "layer_2": "concrete",
+                "outside_layer": "EPS"
+            }
+        })
+    else:
+        seed["Construction"].update({
+            "Exterior Wall": {
+                "idf_max_extensible_fields": 0,
+                "idf_max_fields": 2,
+                "outside_layer": "concrete"
+            }
+        })
+        
+    update(model, seed)
     
     with open(output, 'w') as file:
-        file.write(json.dumps(idf))
-
-''' 
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=90, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=150, floor_height=15, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single_U-conc-eps.json", output='teste_U-conc-eps.epJSON')
-
-  
-# Generate cases
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=90, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=15, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn33-00.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=180, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=15, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn33-90.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=270, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=18, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn38-00.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=90, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=18, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn39-00.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=180, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=18, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn39-90.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=270, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=21, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn44-00.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=90, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=21, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn45-00.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=180, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=21, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn45-90.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=270, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=24, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn50-00.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=0, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=24, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn50-90.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=90, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=24, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn51-00.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=180, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=24, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn51-90.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=180, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=27, room_type='0_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn57-90.epJSON')
-
-# condicoes de janela diferentes
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=180, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=21, room_type='1_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn45-90_1.epJSON')
-
-main(zone_area=40, zone_ratio=.625, zone_height=3, absorptance=.7, shading=0, azimuth=180, bldg_ratio=1,
-    corr_width=2, wall_u=2.35, wall_ct=100, floor_height=21, room_type='3_window', ground=0,
-    roof=0, thermal_loads=70, glass_fs=.87, wwr=.15, open_fac=1, input="seed_single.json", output='zn45-90_3.epJSON')
-'''
+        file.write(json.dumps(model))
