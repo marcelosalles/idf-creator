@@ -2,7 +2,7 @@ import glob
 import pandas
 
 SIMULATIONS = 72000
-N_CLUSTER = 10
+N_CLUSTER = 1  # 0
 BASE_FOLDER = 'sobol_single/'  # without cluster number
 
 
@@ -19,14 +19,16 @@ errors_dict = {
 batch = SIMULATIONS/N_CLUSTER
 for cluster in range(N_CLUSTER):
     
-    folder = BASE_FOLDER+'cluster'+str(cluster)
+    # folder = BASE_FOLDER+'cluster'+str(cluster)
+    folder = BASE_FOLDER+'compare'
 
-    ok_list = [folder+'/sobol_single_'+'{:05.0f}'.format(i)+'out.err' for i in range(int(cluster*batch),int(cluster*batch+batch))]
-    files_pre = glob.glob(folder+'/*.err')
-    files = []
-    for f in files_pre:
-        if f in ok_list:
-            files.append(f)
+    # ok_list = [folder+'/sobol_single_'+'{:05.0f}'.format(i)+'out.err' for i in range(int(cluster*batch),int(cluster*batch+batch))]
+    # files_pre = glob.glob(folder+'/*.err')
+    files = glob.glob(folder+'/*.err')
+    # files = []
+    # for f in files_pre:
+        # if f in ok_list:
+            # files.append(f)
 
     for f in files:
         if f != (folder+'/sqlite.err'):
@@ -60,5 +62,5 @@ for obj in  errors_dict:
     print(obj, len(errors_dict[obj]))
     
 errors_dict = pandas.DataFrame(errors_dict)
-errors_dict.to_csv("ResumoErros_12-06.csv", index=False)
+errors_dict.to_csv("ResumoErros_compare_12-10.csv", index=False)
 

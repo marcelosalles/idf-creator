@@ -2,6 +2,7 @@
 .idea/
 sobol_single/cluster*
 sobol_single/compare
+eq_compare/
 *.mtr
 *.epg
 *.Rhistory
@@ -14,6 +15,7 @@ sobol_single/compare
 *.idf
 *.csv
 *.bnd
+*.dbg
 *.epJSONout
 *.audit
 *.eio

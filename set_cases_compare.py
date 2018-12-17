@@ -14,7 +14,14 @@ sample = pd.read_csv(INPUT_FILE)
 # sample = sample[:300]  # para teste
 
 random.seed(53)
-random_list = [random.randint(0,len(sample)-1) for _ in range(N_RANDOM)]
+random_list = []
+
+while len(random_list) < N_RANDOM:    
+    i = random.randint(0,len(sample)-1)
+    if i not in random_list:
+        random_list.append(i)
+
+# random_list = [random.randint(0,len(sample)-1) for _ in range(N_RANDOM)]
 
 samples_x_cluster = len(sample)/N_CLUSTERS
 
@@ -185,6 +192,7 @@ for line in range(len(sample)):
     caso = '{:05.0f}'.format(line)
     output = ('sobol_single/cluster'+str(cluster_n)+'/sobol_single_{}.epJSON'.format(caso))
 
+    '''
     main(zone_area=area, zone_ratio=ratio, zone_height=zone_height,
     absorptance=absorptance, shading=shading, azimuth=azimuth,
     bldg_ratio=bldg_ratio, corr_width=2, wall_u=wall_u, wall_ct=wall_ct,
@@ -192,12 +200,16 @@ for line in range(len(sample)):
     roof=roof, people=people,  # thermal_loads=thermal_loads,
     glass_fs=glass, wwr=wwr, open_fac=open_fac,
     input_file="seed_single_U-conc-eps.json", output=output)
-    
+    ''' 
+
     if line in random_list:
     
         caso_whole = '{:05.0f}'.format(line)
-        output_whole = ('sobol_single/compare_{}.epJSON'.format(caso_whole))
-        n_floors = int(floor_height/zone_height)
+        output_whole = ('sobol_single/compare/compare_{}.epJSON'.format(caso_whole))
+        if roof > 0:
+            n_floors = int(floor_height/zone_height)+1
+        else:
+            n_floors = int(floor_height/zone_height)+2
         len_zones = n_floors*6
         zone_feat = pd.DataFrame({
             'people':[people for _ in range(len_zones)],
@@ -205,7 +217,19 @@ for line in range(len(sample)):
             'open_fac':[open_fac for _ in range(len_zones)],
             'glass':[glass for _ in range(len_zones)]
             })
- 
+           
+        if sample['room_type'][line] == '1_window':
+            azimuth = (azimuth-90)%360            
+        elif sample['room_type'][line] == '3_window':
+            azimuth = (azimuth-180)%360
+            ratio = 1/ratio
+        elif sample['room_type'][line] == '1_wall':
+            ratio = 1/ratio
+        elif sample['room_type'][line] == '3_wall':
+            azimuth = (azimuth+90)%360
+        else:
+            azimuth = (azimuth+90)%360
+            
         main_whole(zone_area = area, zone_ratio = ratio, zone_height = zone_height, 
         absorptance = absorptance, shading = shading, azimuth = azimuth, corr_width = 2, concrete_eps=True,
         wall_u = wall_u, wall_ct=wall_ct, corr_vent = 1, stairs = 0, zone_feat = zone_feat,
