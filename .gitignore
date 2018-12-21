@@ -1,6 +1,8 @@
 .Rdata
 .idea/
 sobol_single/cluster*
+single_12_18/cluster*
+single_12_20/cluster*
 sobol_single/compare
 eq_compare/
 *.mtr

@@ -1,19 +1,19 @@
-from idf_creator_json import main_whole
-from idf_creator_singlezone import main
+# from idf_creator_json import main_whole
+# from idf_creator_singlezone import main
+from idf_creator_eq_cp_singlezone import main
 import pandas as pd
-import random
+# import random
 
 print('FIM DA IMPORTACAO')
 
-N_CLUSTERS = 10
-INPUT_FILE = 'sample_sobol_12-05.csv'
-N_RANDOM = 1000
+N_CLUSTERS = 16
+INPUT_FILE = 'sample_sobol_12-20.csv'
+FOLDER = 'single_12_20'
+NAME_STDRD = 'single'
 
-# load samples
+###load samples
 sample = pd.read_csv(INPUT_FILE)
 # sample = sample[:300]  # para teste
-
-random_list = [random.randint(0,len(sample)-1) for _ in range(N_RANDOM)]
 
 samples_x_cluster = len(sample)/N_CLUSTERS
 
@@ -47,9 +47,6 @@ MAX_WWR = .6
 
 MIN_OPENFAC = 0.1
 MAX_OPENFAC = 1
-
-# ~ MIN_THERMALLOAD = 0
-# ~ MAX_THERMALLOAD = 150 # fase inicial
 
 MIN_PEOPLE = .05
 MAX_PEOPLE = .5
@@ -104,10 +101,6 @@ BOUNDS = {
         'min': MIN_OPENFAC,
         'max': MAX_OPENFAC
     },
-    # ~ 'thermal_loads':{
-        # ~ 'min': MIN_THERMALLOAD,
-        # ~ 'max': MAX_THERMALLOAD
-    # ~ },
     'people':{
         'min': MIN_PEOPLE,
         'max': MAX_PEOPLE
@@ -146,29 +139,38 @@ for line in range(len(sample)):
     ratio = sample['ratio'][line]
     zone_height = sample['zone_height'][line]
     absorptance = sample['abs'][line]
-    shading = sample['shading'][line]
+    shading = 0  # sample['shading'][line]
     azimuth = sample['azimuth'][line]
     wall_u = sample['wall_u'][line]
     wall_ct = sample['wall_ct'][line]
     wwr = sample['wwr'][line]
     open_fac = sample['open_fac'][line]
-    # ~ thermal_loads = sample['thermal_loads'][line]
     people = sample['people'][line]
-    glass = sample['glass'][line]
-    floor_height = sample['floor_height'][line]
-    bldg_ratio = sample['bldg_ratio'][line]
+    glass = .87  # sample['glass'][line]
+    floor_height = 15  # sample['floor_height'][line]
+    bldg_ratio = 1  # sample['bldg_ratio'][line]
     
     if sample['room_type'][line] < -.6:
-        room_type = '1_window'
+        # room_type = '1_window'
+        zn = 1
+        corner_window = True
     elif sample['room_type'][line] < -.2:
-        room_type = '3_window'
+        # room_type = '3_window'
+        zn = 0
+        corner_window = True
     elif sample['room_type'][line] < .2:
-        room_type = '1_wall'
+        # room_type = '1_wall'
+        zn = 1
+        corner_window = False
     elif sample['room_type'][line] < .6:
-        room_type = '3_wall'
+        # room_type = '3_wall'
+        zn = 0
+        corner_window = False
     else:
-        room_type = '0_window'
-    
+        # room_type = '0_window'
+        zn = 2
+        corner_window = True
+        
     if sample['ground'][line] < 0:
         ground = 0
     else:
@@ -181,13 +183,12 @@ for line in range(len(sample)):
     
     cluster_n = int(line//samples_x_cluster)
     
-    caso = '{:05.0f}'.format(line)
-    output = ('sobol_single/cluster'+str(cluster_n)+'/sobol_single_{}.epJSON'.format(caso))
+    caso = '{:06.0f}'.format(line)
+    output = (FOLDER+'/cluster'+'{:02.0f}'.format(cluster_n)+'/'+NAME_STDRD+'_{}.epJSON'.format(caso))
 
     main(zone_area=area, zone_ratio=ratio, zone_height=zone_height,
     absorptance=absorptance, shading=shading, azimuth=azimuth,
-    bldg_ratio=bldg_ratio, corr_width=2, wall_u=wall_u, wall_ct=wall_ct,
-    floor_height=floor_height, room_type=room_type, ground=ground,
-    roof=roof, people=people,  # thermal_loads=thermal_loads,
-    glass_fs=glass, wwr=wwr, open_fac=open_fac,
+    bldg_ratio=bldg_ratio, wall_u=wall_u, wall_ct=wall_ct, zn=zn,
+    floor_height=floor_height, corner_window=corner_window, ground=ground,
+    roof=roof, people=people, glass_fs=glass, wwr=wwr, open_fac=open_fac,
     input_file="seed_single_U-conc-eps.json", output=output)

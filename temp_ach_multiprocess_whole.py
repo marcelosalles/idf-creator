@@ -9,16 +9,17 @@ from multiprocessing import Pool
 import os
 import pandas as pd
 
-FOLDER_STDRD = 'cluster'
-LEN_FOLDER_NAME = len(FOLDER_STDRD) + 2
-BASE_DIR = '/media/marcelo/OS/LabEEE_1-2/idf-creator/single_12_20/'
+FOLDER_STDRD = 'eq_compare'
+LEN_FOLDER_NAME = len(FOLDER_STDRD)  # +1
+BASE_DIR = '/media/marcelo/OS/LabEEE_1-2/idf-creator/'
 # BASE_DIR = 'D:/LabEEE_1-2/idf-creator/sobol_single'
 MONTH_MEANS = pd.read_csv('month_means_8760.csv')
-MAX_THREADS = 18
+ZONES_LIST = pd.read_csv('eq_compare/zones_list.csv')
+MAX_THREADS = 10
 
-# SIMULATIONS = 108000
-# N_CLUSTERS = 18
-# batch = SIMULATIONS/N_CLUSTERS
+SIMULATIONS = 72000
+N_CLUSTERS = 10
+batch = SIMULATIONS/N_CLUSTERS
 
 def process_folder(folder):
     
@@ -31,13 +32,11 @@ def process_folder(folder):
     # i_cluster = int(folder[-1])
     # ok_list = ['sobol_single_'+'{:05.0f}'.format(i)+'.epJSON' for i in range(int(i_cluster*batch),int(i_cluster*batch+batch))]
     
-    epjson_files = glob.glob('*.err')  #  epJSON')  # []
-    print(len(epjson_files))
-    
+    epjson_files = sorted(glob.glob('whole*.epJSON'))  # []
     # for f in pre_epjson_files:
         # if f in ok_list:
             # epjson_files.append(f)
-
+    print(epjson_files)
     df_temp = {
         'folder': [],
         'file': [],
@@ -45,24 +44,28 @@ def process_folder(folder):
         'ach': [],
         'ehf': []
     }
-
+    
     for file in epjson_files:
+        
+        file_n = int(file[len(file)-9:len(file)-7])
+        zn = ZONES_LIST['zone'][file_n]
+        zn = 24+zn
         print(line,' ',file, end='\r')
         line += 1
-      
+        
         csv_file = file[:-7]+'out.csv' 
         df = pd.read_csv(csv_file)
       
         df_temp['file'].append(file[:-7])
         df_temp['folder'].append(folder_name) 
 
-        df_temp['temp'].append((df['OFFICE:Zone Operative Temperature [C](Hourly)'][df['SCH_OCUPACAO:Schedule Value [](Hourly)'] > 0]).mean())
-        df_temp['ach'].append((df['OFFICE:AFN Zone Infiltration Air Change Rate [ach](Hourly)'][df['SCH_OCUPACAO:Schedule Value [](Hourly)'] > 0]).mean())
+        df_temp['temp'].append((df['OFFICE_'+str(zn)+':Zone Operative Temperature [C](Hourly)'][df['SCH_OCUPACAO:Schedule Value [](Hourly)'] > 0]).mean())
+        df_temp['ach'].append((df['OFFICE_'+str(zn)+':AFN Zone Infiltration Air Change Rate [ach](Hourly)'][df['SCH_OCUPACAO:Schedule Value [](Hourly)'] > 0]).mean())
         
         df['E_hot'] = -1
         df['sup_lim'] = MONTH_MEANS['mean_temp'] + 3.5
-        df.loc[df['OFFICE:Zone Operative Temperature [C](Hourly)'] > df['sup_lim'], 'E_hot'] = 1
-        df.loc[df['OFFICE:Zone Operative Temperature [C](Hourly)'] <= df['sup_lim'], 'E_hot'] = 0
+        df.loc[df['OFFICE_'+str(zn)+':Zone Operative Temperature [C](Hourly)'] > df['sup_lim'], 'E_hot'] = 1
+        df.loc[df['OFFICE_'+str(zn)+':Zone Operative Temperature [C](Hourly)'] <= df['sup_lim'], 'E_hot'] = 0
         
         df_temp['ehf'].append(df['E_hot'][df['SCH_OCUPACAO:Schedule Value [](Hourly)'] > 0].mean())
     
@@ -80,7 +83,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    folders = glob.glob(BASE_DIR+FOLDER_STDRD+'*')
+    folders = glob.glob(BASE_DIR+'/'+FOLDER_STDRD+'*')
 
     print('Processing {} folders in \'{}\':'.format(len(folders), BASE_DIR))
     for folder in folders:

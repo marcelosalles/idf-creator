@@ -1,11 +1,10 @@
 setwd('/media/marcelo/OS/LabEEE_1-2/idf-creator/')
 # setwd('D:/LabEEE_1-2/idf-creator/')
 
-df_error <- read.csv('ResumoErros_compare_12-10.csv')
+df_error <- read.csv('ResumoErros_compare_12-20.csv')
 #df_error <- df_error[order(df_error$file),]
 
 unique( df_error$SevereCompleted)
-length(subset(df_error, df_error$SevereCompleted == 'FATAL'))
 
 df_fatal <- subset(df_error, df_error$SevereCompleted == 'FATAL')
 df_2 <- subset(df_error, df_error$SevereCompleted == 2)

@@ -9,15 +9,16 @@ from SALib.sample import saltelli
 
 # BASE_DIR = 'D:'
 BASE_DIR = '/media/marcelo/OS'
-OUTPUT_FILE = "sample_sobol_12-07.csv"
+OUTPUT_FILE = "sample_sobol_12-20.csv"
+DATASET = 'dataset_12-20.csv'
 
-COL_NAMES = ['area', 'ratio', 'zone_height', 'abs', 'shading', 'azimuth',
+COL_NAMES = ['area', 'ratio', 'zone_height', 'abs', 'shading', 'azimuth',  # 
 	'wall_u', 'wall_ct', 'wwr', 'open_fac', 'people',  # 'thermal_loads', 
     'glass', 'floor_height', 'bldg_ratio', 'room_type', 'ground', 'roof']  # 17 items.
 
 BOUNDS = [-1, 1]
 
-SIMULATIONS = 72000  # 36000
+SIMULATIONS = 112000  # 108000  # 72000  # 36000
 
 def n_calc(d, n_cases, scnd_order = False):
     # N calculator
@@ -44,9 +45,9 @@ if __name__ == "__main__":
         'bounds': [BOUNDS for x in range(len(COL_NAMES))]
     }
 
-    # n_size = n_calc(problem['num_vars'], cases, scnd_order = True)
+    n_size = n_calc(problem['num_vars'], cases, scnd_order = True)
 
-    ### generate samples
+    # ### generate samples
     # param_values = saltelli.sample(problem, n_size)
 
     # df = pd.DataFrame(param_values, columns=problem['names'])
@@ -56,51 +57,54 @@ if __name__ == "__main__":
     
     #### SA
     
-    # df_out = pd.read_csv('/media/marcelo/OS/BS/EHF_12-03.csv')
-    df_out = pd.read_csv(BASE_DIR+'/LabEEE_1-2/idf-creator/means_12-07.csv')
+    #df_out = pd.read_csv('/media/marcelo/OS/BS/EHF_12-03.csv')
+    df_out = pd.read_csv(BASE_DIR+'/LabEEE_1-2/idf-creator/'+DATASET)
     
+    print('EHF')
     Y = np.array(df_out['ehf'])
     sa = sobol.analyze(problem, Y, print_to_console=True)
 
-    for key in sa:
-        sa[key] = list(sa[key])
-    for key in ['S2','S2_conf']:
-        for line in range (len(sa[key])):
-            sa[key][line] = list(sa[key][line])
+    # #for key in sa:
+        # #sa[key] = list(sa[key])
+    # #for key in ['S2','S2_conf']:
+        # #for line in range (len(sa[key])):
+            # #sa[key][line] = list(sa[key][line])
             
-    # with open('/media/marcelo/OS/BS/sa_ehf_12-05.csv', 'w') as f:
-    with open(BASE_DIR+'/LabEEE_1-2/idf-creator/sa_ehf_12-05.csv', 'w') as f:
-        json.dump(sa, f)
+    # #with open('/media/marcelo/OS/BS/sa_ehf_12-05.csv', 'w') as f:
+    # #with open(BASE_DIR+'/LabEEE_1-2/idf-creator/sa_ehf_12-05.csv', 'w') as f:
+        # #json.dump(sa, f)
     
     #### SA TEMP and ACH
     
     #df_out = pd.read_csv('/media/marcelo/OS/BS/temp_11-29.csv')
     
     #temp
+    print('TEMP')
     Y = np.array(df_out['temp'])
     sa = sobol.analyze(problem, Y, print_to_console=True)
 
-    for key in sa:
-        sa[key] = list(sa[key])
-    for key in ['S2','S2_conf']:
-        for line in range (len(sa[key])):
-            sa[key][line] = list(sa[key][line])
+    # #for key in sa:
+        # #sa[key] = list(sa[key])
+    # #for key in ['S2','S2_conf']:
+        # #for line in range (len(sa[key])):
+            # #sa[key][line] = list(sa[key][line])
             
-    # with open('/media/marcelo/OS/BS/sa_temp_12-05.csv', 'w') as f:
-    with open(BASE_DIR+'/LabEEE_1-2/idf-creator/sa_temp_12-05.csv', 'w') as f:
-        json.dump(sa, f)
+    # #with open('/media/marcelo/OS/BS/sa_temp_12-05.csv', 'w') as f:
+    # #with open(BASE_DIR+'/LabEEE_1-2/idf-creator/sa_temp_12-05.csv', 'w') as f:
+        # #json.dump(sa, f)
 
-    # ach
+    #ach
+    print('ACH')
     Y = np.array(df_out['ach'])
     sa = sobol.analyze(problem, Y, print_to_console=True)
 
-    for key in sa:
-        sa[key] = list(sa[key])
-    for key in ['S2','S2_conf']:
-        for line in range (len(sa[key])):
-            sa[key][line] = list(sa[key][line])
+    # #for key in sa:
+        # #sa[key] = list(sa[key])
+    # #for key in ['S2','S2_conf']:
+        # #for line in range (len(sa[key])):
+            # #sa[key][line] = list(sa[key][line])
             
-    # with open('/media/marcelo/OS/BS/sa_ach_12-05.csv', 'w') as f:
-    with open(BASE_DIR+'/LabEEE_1-2/idf-creator/sa_ach_12-05.csv', 'w') as f:
-        json.dump(sa, f)
+    # #with open('/media/marcelo/OS/BS/sa_ach_12-05.csv', 'w') as f:
+    # #with open(BASE_DIR+'/LabEEE_1-2/idf-creator/sa_ach_12-05.csv', 'w') as f:
+        # #json.dump(sa, f)
     

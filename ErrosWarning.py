@@ -1,10 +1,10 @@
 import glob
 import pandas
 
-SIMULATIONS = 72000
-N_CLUSTER = 1  # 0
-BASE_FOLDER = 'sobol_single/'  # without cluster number
-
+SIMULATIONS = 112000
+N_CLUSTER = 16  # 18
+BASE_FOLDER = 'single_12_20/'  # without cluster number
+OUTPUT_FILE = "ResumoErros_12-20.csv"
 
 errors_dict = {
     'file':[],
@@ -16,11 +16,11 @@ errors_dict = {
     'SevereSizing': []
 }
 
-batch = SIMULATIONS/N_CLUSTER
+# batch = SIMULATIONS/N_CLUSTER
 for cluster in range(N_CLUSTER):
     
-    # folder = BASE_FOLDER+'cluster'+str(cluster)
-    folder = BASE_FOLDER+'compare'
+    folder = BASE_FOLDER+'cluster{:02.0f}'.format(cluster)
+    # folder = BASE_FOLDER
 
     # ok_list = [folder+'/sobol_single_'+'{:05.0f}'.format(i)+'out.err' for i in range(int(cluster*batch),int(cluster*batch+batch))]
     # files_pre = glob.glob(folder+'/*.err')
@@ -62,5 +62,5 @@ for obj in  errors_dict:
     print(obj, len(errors_dict[obj]))
     
 errors_dict = pandas.DataFrame(errors_dict)
-errors_dict.to_csv("ResumoErros_compare_12-10.csv", index=False)
+errors_dict.to_csv(OUTPUT_FILE, index=False)
 

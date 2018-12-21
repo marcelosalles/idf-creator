@@ -926,4 +926,28 @@ def main(zone_area=10, zone_ratio=1, zone_height=3, absorptance=.5,
     with open(output, 'w') as file:
         file.write(json.dumps(model))
 
-# main(bldg_ratio=.75, azimuth=35 ,input_file='seed_single_U-conc-eps.json' , output='teste_cp_eq.epJSON')
+'''       
+main(zone_area=15, zone_ratio=1, zone_height=3, absorptance=.2,
+    shading=1, azimuth=0, bldg_ratio=1, wall_u=2.5, wall_ct=100,
+    zn=2, floor_height=10, corner_window=True, ground=0,
+    roof=0, people=.1, glass_fs=.87, wwr=.3, open_fac=1, 
+    input_file='seed_single_U-conc-eps.json' , output='azimute_0.epJSON')
+    
+main(zone_area=15, zone_ratio=1, zone_height=3, absorptance=.2,
+    shading=1, azimuth=90, bldg_ratio=1, wall_u=2.5, wall_ct=100,
+    zn=2, floor_height=10, corner_window=True, ground=0,
+    roof=0, people=.1, glass_fs=.87, wwr=.3, open_fac=1, 
+    input_file='seed_single_U-conc-eps.json' , output='azimute_90.epJSON')
+    
+main(zone_area=15, zone_ratio=1, zone_height=3, absorptance=.2,
+    shading=1, azimuth=180, bldg_ratio=1, wall_u=2.5, wall_ct=100,
+    zn=2, floor_height=10, corner_window=True, ground=0,
+    roof=0, people=.1, glass_fs=.87, wwr=.3, open_fac=1, 
+    input_file='seed_single_U-conc-eps.json' , output='azimute_180.epJSON')
+    
+main(zone_area=15, zone_ratio=1, zone_height=3, absorptance=.2,
+    shading=1, azimuth=270, bldg_ratio=1, wall_u=2.5, wall_ct=100,
+    zn=2, floor_height=10, corner_window=True, ground=0,
+    roof=0, people=.1, glass_fs=.87, wwr=.3, open_fac=1, 
+    input_file='seed_single_U-conc-eps.json' , output='azimute_270.epJSON')
+''' 
